@@ -119,17 +119,20 @@ const StudentDetailModal = ({ student, onClose }) => {
             // Fallback: group by available reports (old logic)
             const topicGroups = {};
             langReports.forEach(report => {
-                const topicName = report.topicId?.name || 'Unknown Topic';
-                if (topicName?.toLowerCase() === 'project work') {
+                const topicNames = getReportTopicNames(report);
+                if (topicNames?.toLowerCase().includes('project work')) {
                     return;
                 }
 
-                const topicId = report.topicId?._id || report.topicId;
+                // Use first topic id for grouping if present
+                const topicId = Array.isArray(report.topicIds) && report.topicIds.length > 0
+                    ? report.topicIds[0]?._id || report.topicIds[0]
+                    : (report.topicId?._id || report.topicId);
                 if (!topicGroups[topicId]) {
                     topicGroups[topicId] = {
                         topicId: topicId,
-                        topicName: topicName,
-                        order: report.topicId?.order ?? 999,
+                        topicName: topicNames,
+                        order: (Array.isArray(report.topicIds) && report.topicIds[0]?.order) || report.topicId?.order || 999,
                         reports: []
                     };
                 }
@@ -211,6 +214,16 @@ const StudentDetailModal = ({ student, onClose }) => {
         });
 
         setProjectCpcData(projectRows);
+    };
+
+    const getReportTopicNames = (report) => {
+        if (Array.isArray(report.topicIds) && report.topicIds.length > 0) {
+            return report.topicIds.map(topic => topic?.name || 'Unknown Topic').join(', ');
+        }
+        if (report.topicId) {
+            return report.topicId?.name || String(report.topicId) || 'Unknown Topic';
+        }
+        return 'Unknown Topic';
     };
 
     const getLanguageOverallDuration = (langId) => {
@@ -305,7 +318,7 @@ const StudentDetailModal = ({ student, onClose }) => {
                         <div className="flex justify-between items-start mb-3">
                             <div className="flex items-center gap-2">
                                 {/* <div className="p-1 px-2 bg-emerald-100 text-emerald-700 rounded text-xs font-bold uppercase tracking-wider">Report</div> */}
-                                <h3 className="font-bold text-gray-900">{report.languageId?.name || '-'} - {report.topicId?.name || 'Unknown Topic'}</h3>
+                                <h3 className="font-bold text-gray-900">{report.languageId?.name || '-'} - {getReportTopicNames(report)}</h3>
                             </div>
                             <div className="text-xs text-gray-500 bg-white px-2 py-1 rounded border font-medium">
                                 {format(parseISO(report.date), 'dd MMM yyyy')}

@@ -13,6 +13,20 @@ export const AuthProvider = ({ children }) => {
             setUser(storedUser);
         }
         setLoading(false);
+
+        const handleAutoLogout = () => {
+            localStorage.removeItem('user');
+            setUser(null);
+        };
+
+        // When user closes tab/window, auto logout to avoid stale OAuth on reopen
+        window.addEventListener('beforeunload', handleAutoLogout);
+        window.addEventListener('pagehide', handleAutoLogout);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleAutoLogout);
+            window.removeEventListener('pagehide', handleAutoLogout);
+        };
     }, []);
 
     const login = async (credentials) => {
