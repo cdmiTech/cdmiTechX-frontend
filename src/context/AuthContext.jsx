@@ -8,30 +8,19 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const storedUser = JSON.parse(localStorage.getItem('user'));
+        const storedUser = JSON.parse(sessionStorage.getItem('user'));
         if (storedUser) {
             setUser(storedUser);
         }
         setLoading(false);
 
-        const handleAutoLogout = () => {
-            localStorage.removeItem('user');
-            setUser(null);
-        };
-
-        // When user closes tab/window, auto logout to avoid stale OAuth on reopen
-        window.addEventListener('beforeunload', handleAutoLogout);
-        window.addEventListener('pagehide', handleAutoLogout);
-
-        return () => {
-            window.removeEventListener('beforeunload', handleAutoLogout);
-            window.removeEventListener('pagehide', handleAutoLogout);
-        };
+        // Do not auto-logout on refresh; sessionStorage preserves state across reloads.
+        // User is logged out on tab/window close automatically by sessionStorage.
     }, []);
 
     const login = async (credentials) => {
         const { data } = await api.post('/auth/login', credentials);
-        localStorage.setItem('user', JSON.stringify(data));
+        sessionStorage.setItem('user', JSON.stringify(data));
         setUser(data);
         return data;
     };
@@ -44,7 +33,7 @@ export const AuthProvider = ({ children }) => {
         }
 
         const userData = { ...data, googleAccessToken };
-        localStorage.setItem('user', JSON.stringify(userData));
+        sessionStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
         return userData;
     };
@@ -52,20 +41,20 @@ export const AuthProvider = ({ children }) => {
     const googleRegister = async (registrationData, googleAccessToken) => {
         const { data } = await api.post('/auth/google/register', registrationData);
         const userData = { ...data, googleAccessToken };
-        localStorage.setItem('user', JSON.stringify(userData));
+        sessionStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
         return userData;
     };
 
     const register = async (userData) => {
         const { data } = await api.post('/auth/register', userData);
-        localStorage.setItem('user', JSON.stringify(data));
+        sessionStorage.setItem('user', JSON.stringify(data));
         setUser(data);
         return data;
     };
 
     const logout = () => {
-        localStorage.removeItem('user');
+        sessionStorage.removeItem('user');
         setUser(null);
     };
 
@@ -73,7 +62,7 @@ export const AuthProvider = ({ children }) => {
         try {
             const { data } = await api.get('/auth/profile');
             const updatedUser = { ...user, ...data };
-            localStorage.setItem('user', JSON.stringify(updatedUser));
+            sessionStorage.setItem('user', JSON.stringify(updatedUser));
             setUser(updatedUser);
             return data;
         } catch (error) {

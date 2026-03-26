@@ -7,10 +7,10 @@ import { Plus, Eye, CheckCircle, List } from 'lucide-react';
 import StudentDetailModal from '../components/StudentDetailModal';
 import { toast } from 'react-toastify';
 
-// Helper: get the logged-in user's data from localStorage
+// Helper: get the logged-in user's data from sessionStorage
 const getLoggedInUser = () => {
     try {
-        const user = localStorage.getItem('user');
+        const user = sessionStorage.getItem('user');
         return user ? JSON.parse(user) : null;
     } catch {
         return null;
