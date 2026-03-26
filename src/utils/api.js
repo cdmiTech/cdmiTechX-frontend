@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-    // baseURL: 'https://cdmitechx-backend.onrender.com/api', // Adjust base URL as needed
-    baseURL: 'http://localhost:5000/api', // Adjust base URL as needed
+    baseURL: 'https://cdmitechx-backend.onrender.com/api', // Adjust base URL as needed
+    // baseURL: 'http://localhost:5000/api', // Adjust base URL as needed
 });
 
 // Add a request interceptor to include the token in headers
