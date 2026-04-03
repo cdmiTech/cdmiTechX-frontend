@@ -96,7 +96,11 @@ const Topics = () => {
     const itemsPerPage = 100; // Increased to allow easier sorting across many topics
 
     const sensors = useSensors(
-        useSensor(PointerSensor),
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 5,
+            },
+        }),
         useSensor(KeyboardSensor, {
             coordinateGetter: sortableKeyboardCoordinates,
         })
@@ -238,7 +242,7 @@ const Topics = () => {
             const newIndex = filteredTopics.findIndex((i) => i._id === over.id);
 
             const reorderedTopics = arrayMove(filteredTopics, oldIndex, newIndex);
-            
+
             // Update local state by mapping through main topics array
             const updatedTopics = topics.map(t => {
                 const isFiltered = (t.languageId?._id || t.languageId) === filterLanguage;
@@ -250,7 +254,7 @@ const Topics = () => {
                 }
                 return t;
             });
-            
+
             // Rebuild topics array to preserve order for the specific language
             const otherLanguageTopics = topics.filter(t => (t.languageId?._id || t.languageId) !== filterLanguage);
             setTopics([...otherLanguageTopics, ...reorderedTopics].sort((a, b) => {

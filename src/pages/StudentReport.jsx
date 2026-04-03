@@ -201,6 +201,9 @@ const StudentReport = () => {
             // Refresh reports
             const { data } = await api.get('/reports/student');
             setReports(data.data);
+            
+            // Redirect to Gmail Sent folder after successful submission
+            window.location.href = 'https://mail.google.com/mail/u/0/#sent';
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to submit report');
         } finally {
