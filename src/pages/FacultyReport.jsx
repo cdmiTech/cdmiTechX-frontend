@@ -230,7 +230,9 @@ const FacultyReport = () => {
                                             <td className="px-6 py-4">
                                                 <div className="text-xs space-y-1">
                                                     <p className="font-bold text-indigo-600 uppercase tracking-tighter">
-                                                        {report.languageId?.name}
+                                                        {report.languageIds && report.languageIds.length > 0 
+                                                            ? report.languageIds.map(l => l?.name).filter(Boolean).join(', ')
+                                                            : (report.languageId?.name || '-')}
                                                     </p>
                                                     <p className="text-gray-400 italic">
                                                         {Array.isArray(report.topicIds)
@@ -299,8 +301,12 @@ const FacultyReport = () => {
                                     <p className="text-lg font-bold text-gray-800">{selectedReport.studentId?.batchTime}</p>
                                 </div>
                                 <div className="space-y-1">
-                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Language</span>
-                                    <p className="text-lg font-bold text-indigo-600">{selectedReport.languageId?.name}</p>
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Language(s)</span>
+                                    <p className="text-lg font-bold text-indigo-600">
+                                        {selectedReport.languageIds && selectedReport.languageIds.length > 0 
+                                            ? selectedReport.languageIds.map(l => l?.name).filter(Boolean).join(', ')
+                                            : (selectedReport.languageId?.name || '-')}
+                                    </p>
                                 </div>
                                 <div className="space-y-1">
                                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Topic</span>

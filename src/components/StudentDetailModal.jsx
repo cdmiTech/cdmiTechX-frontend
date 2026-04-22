@@ -44,8 +44,9 @@ const StudentDetailModal = ({ student, onClose }) => {
     const processCPC = (allReports, langId, allTopics = []) => {
         const normalizedLangId = String(langId || '');
         const langReports = allReports.filter(r => {
-            const reportLangId = String(r.languageId?._id || r.languageId || '');
-            return reportLangId === normalizedLangId;
+            const legacyId = String(r.languageId?._id || r.languageId || '');
+            const multiIds = Array.isArray(r.languageIds) ? r.languageIds.map(l => String(l?._id || l)) : [];
+            return legacyId === normalizedLangId || multiIds.includes(normalizedLangId);
         });
         
         // Use provided topics or fallback to empty
@@ -229,7 +230,11 @@ const StudentDetailModal = ({ student, onClose }) => {
     const getLanguageOverallDuration = (langId) => {
         const normalizedLangId = String(langId || '');
         const langReports = reports
-            .filter(r => String(r.languageId?._id || r.languageId || '') === normalizedLangId)
+            .filter(r => {
+                const legacyId = String(r.languageId?._id || r.languageId || '');
+                const multiIds = Array.isArray(r.languageIds) ? r.languageIds.map(l => String(l?._id || l)) : [];
+                return legacyId === normalizedLangId || multiIds.includes(normalizedLangId);
+            })
             .sort((a, b) => new Date(a.date) - new Date(b.date));
 
         if (langReports.length === 0) return 0;
@@ -318,7 +323,12 @@ const StudentDetailModal = ({ student, onClose }) => {
                         <div className="flex justify-between items-start mb-3">
                             <div className="flex items-center gap-2">
                                 {/* <div className="p-1 px-2 bg-emerald-100 text-emerald-700 rounded text-xs font-bold uppercase tracking-wider">Report</div> */}
-                                <h3 className="font-bold text-gray-900">{report.languageId?.name || '-'} - {getReportTopicNames(report)}</h3>
+                                <h3 className="font-bold text-gray-900">
+                                    {Array.isArray(report.languageIds) && report.languageIds.length > 0 
+                                        ? report.languageIds.map(l => l.name || 'Unknown').join(', ')
+                                        : (report.languageId?.name || '-')} 
+                                    - {getReportTopicNames(report)}
+                                </h3>
                             </div>
                             <div className="text-xs text-gray-500 bg-white px-2 py-1 rounded border font-medium">
                                 {format(parseISO(report.date), 'dd MMM yyyy')}

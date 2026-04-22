@@ -33,8 +33,9 @@ const CPCTable = () => {
                 // Filter reports for this language
                 const normalizedLanguageId = String(languageId || '');
                 const langReps = allReps.filter(r => {
-                    const reportLangId = String(r.languageId?._id || r.languageId || '');
-                    return reportLangId === normalizedLanguageId;
+                    const legacyId = String(r.languageId?._id || r.languageId || '');
+                    const multiIds = Array.isArray(r.languageIds) ? r.languageIds.map(l => String(l?._id || l)) : [];
+                    return legacyId === normalizedLanguageId || multiIds.includes(normalizedLanguageId);
                 });
                 setLanguageReports(langReps);
                 // Fetch all topics for this language
@@ -150,43 +151,43 @@ const CPCTable = () => {
                         : [];
                     return ids.some(id => String(id) === String(topicId));
                 });
-            
-            if (reportsForTopic.length === 0) {
+
+                if (reportsForTopic.length === 0) {
+                    return {
+                        topicId: topicId,
+                        topicName: topic.name,
+                        order: topic.order ?? 999,
+                        startDate: null,
+                        endDate: null,
+                        totalDays: 0,
+                        isStarted: false
+                    };
+                }
+
+                const sortedGroupReps = [...reportsForTopic].sort((a, b) => new Date(a.date) - new Date(b.date));
+                const startDate = sortedGroupReps[0].date;
+                const langLatestDate = sortedGroupReps[sortedGroupReps.length - 1].date;
+
+                let endDate = null;
+                let totalDays = 0;
+
+                if (globalLatestDate && new Date(langLatestDate) < new Date(globalLatestDate)) {
+                    endDate = langLatestDate;
+                    totalDays = calculateDays(startDate, endDate);
+                } else {
+                    totalDays = calculateDays(startDate, langLatestDate);
+                }
+
                 return {
                     topicId: topicId,
                     topicName: topic.name,
                     order: topic.order ?? 999,
-                    startDate: null,
-                    endDate: null,
-                    totalDays: 0,
-                    isStarted: false
+                    startDate,
+                    endDate,
+                    totalDays,
+                    isStarted: true
                 };
-            }
-
-            const sortedGroupReps = [...reportsForTopic].sort((a,b) => new Date(a.date) - new Date(b.date));
-            const startDate = sortedGroupReps[0].date;
-            const langLatestDate = sortedGroupReps[sortedGroupReps.length - 1].date;
-            
-            let endDate = null;
-            let totalDays = 0;
-
-            if (globalLatestDate && new Date(langLatestDate) < new Date(globalLatestDate)) {
-                endDate = langLatestDate;
-                totalDays = calculateDays(startDate, endDate);
-            } else {
-                totalDays = calculateDays(startDate, langLatestDate);
-            }
-
-            return {
-                topicId: topicId,
-                topicName: topic.name,
-                order: topic.order ?? 999,
-                startDate,
-                endDate,
-                totalDays,
-                isStarted: true
-            };
-        });
+            });
 
         // Sort by Topic Order (syllabus order)
         const sortedRows = [...topicRows].sort((a, b) => a.order - b.order);
@@ -344,47 +345,47 @@ const CPCTable = () => {
                         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
                             <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 font-bold text-gray-700">Project Work</div>
 
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-gray-50/50 border-b border-gray-100">
-                                    <th className="px-4 py-3 text-[13px] font-bold text-gray-500 uppercase tracking-wider w-16">No.</th>
-                                    <th className="px-4 py-3 text-[13px] font-bold text-gray-500 uppercase tracking-wider">Project Title</th>
-                                    <th className="px-4 py-3 text-[13px] font-bold text-gray-500 uppercase tracking-wider">Start Date</th>
-                                    <th className="px-4 py-3 text-[13px] font-bold text-gray-500 uppercase tracking-wider">End Date</th>
-                                    <th className="px-4 py-3 text-[13px] font-bold text-gray-500 uppercase tracking-wider text-center">Days</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {projectRows.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="5" className="px-4 py-8 text-center text-gray-500 italic text-sm">No project work entries yet.</td>
-                                    </tr>
-                                ) : (
-                                    projectRows.map((row) => (
-                                        <tr key={row.no} className="hover:bg-indigo-50/20 transition-colors group">
-                                            <td className="px-4 py-3">
-                                                <span className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors">
-                                                    {row.no}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3 font-bold text-gray-800 text-sm">{row.projectTitle}</td>
-                                            <td className="px-4 py-3 text-gray-600 text-sm">{row.startDate ? format(parseISO(row.startDate), 'dd MMM yyyy') : '-'}</td>
-                                            <td className="px-4 py-3 text-gray-600 text-sm">{row.endDate ? format(parseISO(row.endDate), 'dd MMM yyyy') : (<span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Ongoing</span>)}</td>
-                                            <td className="px-4 py-3 text-center">
-                                                <span className="inline-flex items-center justify-center px-3 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs">
-                                                    {row.totalDays} {row.totalDays === 1 ? 'Day' : 'Days'}
-                                                </span>
-                                            </td>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-gray-50/50 border-b border-gray-100">
+                                            <th className="px-4 py-3 text-[13px] font-bold text-gray-500 uppercase tracking-wider w-16">No.</th>
+                                            <th className="px-4 py-3 text-[13px] font-bold text-gray-500 uppercase tracking-wider">Project Title</th>
+                                            <th className="px-4 py-3 text-[13px] font-bold text-gray-500 uppercase tracking-wider">Start Date</th>
+                                            <th className="px-4 py-3 text-[13px] font-bold text-gray-500 uppercase tracking-wider">End Date</th>
+                                            <th className="px-4 py-3 text-[13px] font-bold text-gray-500 uppercase tracking-wider text-center">Days</th>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </> 
-        )}
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-50">
+                                        {projectRows.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="5" className="px-4 py-8 text-center text-gray-500 italic text-sm">No project work entries yet.</td>
+                                            </tr>
+                                        ) : (
+                                            projectRows.map((row) => (
+                                                <tr key={row.no} className="hover:bg-indigo-50/20 transition-colors group">
+                                                    <td className="px-4 py-3">
+                                                        <span className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors">
+                                                            {row.no}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 font-bold text-gray-800 text-sm">{row.projectTitle}</td>
+                                                    <td className="px-4 py-3 text-gray-600 text-sm">{row.startDate ? format(parseISO(row.startDate), 'dd MMM yyyy') : '-'}</td>
+                                                    <td className="px-4 py-3 text-gray-600 text-sm">{row.endDate ? format(parseISO(row.endDate), 'dd MMM yyyy') : (<span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Ongoing</span>)}</td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <span className="inline-flex items-center justify-center px-3 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs">
+                                                            {row.totalDays} {row.totalDays === 1 ? 'Day' : 'Days'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );

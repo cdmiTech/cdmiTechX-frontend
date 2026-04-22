@@ -5,7 +5,7 @@ import { format, isSameDay, parseISO } from 'date-fns';
 import api from '../utils/api';
 import AuthContext from '../context/AuthContext';
 import Modal from '../components/Modal';
-import { FileText, Calendar as CalendarIcon, CheckCircle, AlertCircle } from 'lucide-react';
+import { FileText, Calendar as CalendarIcon, CheckCircle, AlertCircle, ChevronDown, ChevronRight, Layers } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const StudentReport = () => {
@@ -19,12 +19,12 @@ const StudentReport = () => {
     const [topics, setTopics] = useState([]);
 
     const [formData, setFormData] = useState({
-        languageId: '',
-        languageName: '',
+        languageIds: [],
         topicIds: [],
         projectWorkTitles: [],
         description: ''
     });
+    const [expandedLanguages, setExpandedLanguages] = useState([]);
     const [newProjectWorkTitle, setNewProjectWorkTitle] = useState('');
     const [ongoingProjectWorkTitles, setOngoingProjectWorkTitles] = useState([]);
 
@@ -100,15 +100,21 @@ const StudentReport = () => {
     };
 
     useEffect(() => {
-        const filteredReports = formData.languageId ? reports.filter(r => r.languageId._id === formData.languageId) : reports;
+        const filteredReports = formData.languageIds.length > 0 
+            ? reports.filter(r => {
+                const multiIds = Array.isArray(r.languageIds) ? r.languageIds.map(l => (l?._id || l)?.toString()) : [];
+                const legacyId = (r.languageId?._id || r.languageId || '')?.toString();
+                return formData.languageIds.some(id => id === legacyId || multiIds.includes(id));
+              }) 
+            : reports;
         setOngoingProjectWorkTitles(computeOngoingProjects(filteredReports));
-    }, [reports, formData.languageId]);
+    }, [reports, formData.languageIds]);
 
     useEffect(() => {
-        if (formData.languageId) {
+        if (formData.languageIds.length > 0) {
             const fetchTopics = async () => {
                 try {
-                    const { data } = await api.get(`/topics?languageId=${formData.languageId}`);
+                    const { data } = await api.get(`/topics?languageId=${formData.languageIds.join(',')}`);
                     setTopics(data);
                 } catch (error) {
                     console.error('Error fetching topics:', error);
@@ -118,19 +124,59 @@ const StudentReport = () => {
         } else {
             setTopics([]);
         }
-    }, [formData.languageId]);
+    }, [formData.languageIds]);
 
-    const handleLanguageChange = (e) => {
-        const langId = e.target.value;
-        const lang = languages.find(l => l._id === langId);
-        setFormData({
-            ...formData,
-            languageId: langId,
-            languageName: lang ? lang.name : '',
-            topicIds: [],
-            projectWorkTitles: []
+    const toggleLanguage = (langId) => {
+        setFormData(prev => {
+            const already = prev.languageIds.includes(langId);
+            const newLanguageIds = already
+                ? prev.languageIds.filter(id => id !== langId)
+                : [...prev.languageIds, langId];
+            
+            let newTopicIds = prev.topicIds;
+            if (already) {
+                // If removing a language, remove its topics too
+                const langTopics = topics.filter(t => (t.languageId?._id || t.languageId) === langId);
+                const langTopicIds = langTopics.map(t => t._id);
+                newTopicIds = prev.topicIds.filter(id => !langTopicIds.includes(id));
+            }
+
+            return {
+                ...prev,
+                languageIds: newLanguageIds,
+                topicIds: newTopicIds,
+                projectWorkTitles: already ? prev.projectWorkTitles : prev.projectWorkTitles // keep project work titles for now or reset if appropriate
+            };
         });
+        
+        // Auto-expand if newly selected
+        if (!formData.languageIds.includes(langId)) {
+            setExpandedLanguages(prev => [...new Set([...prev, langId])]);
+        }
+        
         setNewProjectWorkTitle('');
+    };
+
+    const toggleExpand = (langId) => {
+        setExpandedLanguages(prev => 
+            prev.includes(langId) 
+                ? prev.filter(id => id !== langId)
+                : [...prev, langId]
+        );
+    };
+
+    const selectAllTopicsForLanguage = (langId, topicList) => {
+        const langTopicIds = topicList.map(t => t._id);
+        setFormData(prev => {
+            const otherTopicIds = prev.topicIds.filter(id => !langTopicIds.includes(id));
+            const allSelected = langTopicIds.every(id => prev.topicIds.includes(id));
+            
+            const newTopicIds = allSelected 
+                ? otherTopicIds // Deselect all for this language
+                : [...new Set([...prev.topicIds, ...langTopicIds])]; // Select all for this language
+
+            return { ...prev, topicIds: newTopicIds };
+        });
     };
 
     const toggleTopic = (topicId) => {
@@ -159,14 +205,16 @@ const StudentReport = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const selectedLanguages = languages.filter(l => formData.languageIds.includes(l._id));
+        const languageName = selectedLanguages.map(l => l.name).join(', ');
+        
         const selectedTopics = topics.filter(t => formData.topicIds.includes(t._id));
-        const topicNames = selectedTopics.map(t => t.name).join(', ');
         const isProjectWorkSelected = selectedTopics.some(t => t.name?.toLowerCase() === 'project work');
         const selectedProjectWorkTitles = Array.isArray(formData.projectWorkTitles) ? formData.projectWorkTitles.filter(Boolean) : [];
         const finalProjectWorkTitles = [...new Set([...selectedProjectWorkTitles, ...[newProjectWorkTitle.trim()].filter(Boolean)])];
 
-        if (!formData.languageId || formData.topicIds.length === 0 || !formData.description) {
-            toast.warning('Please fill all fields and select at least one topic');
+        if (formData.languageIds.length === 0 || formData.topicIds.length === 0 || !formData.description) {
+            toast.warning('Please select at least one language, one topic, and provide a description');
             return;
         }
 
@@ -180,10 +228,10 @@ const StudentReport = () => {
             const payload = {
                 date: format(new Date(), 'yyyy-MM-dd'),
                 googleAccessToken: user?.googleAccessToken,
-                languageId: formData.languageId,
-                languageName: formData.languageName,
+                languageIds: formData.languageIds,
+                languageName,
                 topicIds: formData.topicIds,
-                topicNames,
+                topicNames: selectedTopics.map(t => t.name).join(', '),
                 projectWorkTitles: finalProjectWorkTitles,
                 description: formData.description
             };
@@ -195,7 +243,7 @@ const StudentReport = () => {
             await api.post('/reports', payload);
             toast.success('Report submitted successfully');
             setIsModalOpen(false);
-            setFormData({ languageId: '', languageName: '', topicIds: [], projectWorkTitles: [], description: '' });
+            setFormData({ languageIds: [], topicIds: [], projectWorkTitles: [], description: '' });
             setNewProjectWorkTitle('');
 
             // Refresh reports
@@ -203,7 +251,7 @@ const StudentReport = () => {
             setReports(data.data);
             
             // Redirect to Gmail Sent folder after successful submission
-            window.location.href = 'https://mail.google.com/mail/u/0/#sent';
+            window.open('https://mail.google.com/mail/u/0/#sent', '_blank');
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to submit report');
         } finally {
@@ -223,7 +271,9 @@ const StudentReport = () => {
                     <div className="mt-1 flex flex-col items-center">
                         <div className="w-2 h-2 bg-green-500 rounded-full mb-1"></div>
                         <div className="text-[10px] leading-tight text-indigo-600 font-bold hidden sm:block truncate w-full px-1 text-center">
-                            {report.languageId?.name}
+                            {report.languageIds && report.languageIds.length > 0 
+                                ? report.languageIds.map(l => l?.name).filter(Boolean).join(', ')
+                                : report.languageId?.name}
                         </div>
                         <div className="text-[10px] leading-tight text-gray-500 hidden sm:block truncate w-full px-1 text-center">
                             {Array.isArray(report.topicIds)
@@ -437,62 +487,129 @@ const StudentReport = () => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Language</label>
-                        <select
-                            value={formData.languageId}
-                            onChange={handleLanguageChange}
-                            required
-                            className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
-                        >
-                            <option value="">Select Language</option>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                            Language(s)
+                            <span className="ml-2 text-xs text-indigo-500 font-normal">
+                                ({formData.languageIds.length} selected)
+                            </span>
+                        </label>
+                        <div className="border border-gray-300 rounded-xl p-3 max-h-40 overflow-y-auto grid grid-cols-2 gap-2">
                             {languages.map(lang => (
-                                <option key={lang._id} value={lang._id}>{lang.name}</option>
+                                <label key={lang._id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.languageIds.includes(lang._id)}
+                                        onChange={() => toggleLanguage(lang._id)}
+                                        className="w-4 h-4 accent-indigo-600"
+                                    />
+                                    <span className="text-sm text-gray-700">{lang.name}</span>
+                                </label>
                             ))}
-                        </select>
+                        </div>
                     </div>
 
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">
-                            Topics
-                            {formData.languageId && (
+                            Topics Grouped by Language
+                            {formData.languageIds.length > 0 && (
                                 <span className="ml-2 text-xs text-indigo-500 font-normal">
                                     ({formData.topicIds.length} selected)
                                 </span>
                             )}
                         </label>
-                        {!formData.languageId ? (
-                            <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
-                                <AlertCircle className="w-3 h-3" />
-                                Please select a language first
-                            </p>
-                        ) : topics.length === 0 ? (
-                            <p className="text-xs text-gray-400 mt-2 italic">No topics available for this language.</p>
+                        {formData.languageIds.length === 0 ? (
+                            <div className="bg-gray-50 border border-dashed border-gray-300 rounded-xl p-8 text-center">
+                                <Layers className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                                <p className="text-sm text-gray-500">Please select at least one language to see topics</p>
+                            </div>
                         ) : (
-                            <div className="border border-gray-300 rounded-xl max-h-48 overflow-y-auto divide-y divide-gray-100">
-                                {topics.map(topic => (
-                                    <label
-                                        key={topic._id}
-                                        className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${
-                                            formData.topicIds.includes(topic._id)
-                                                ? 'bg-indigo-50'
-                                                : 'hover:bg-gray-50'
-                                        }`}
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.topicIds.includes(topic._id)}
-                                            onChange={() => toggleTopic(topic._id)}
-                                            className="w-4 h-4 accent-indigo-600 shrink-0"
-                                        />
-                                        <span className={`text-sm ${
-                                            formData.topicIds.includes(topic._id)
-                                                ? 'text-indigo-700 font-semibold'
-                                                : 'text-gray-700'
-                                        }`}>
-                                            {topic.name}
-                                        </span>
-                                    </label>
-                                ))}
+                            <div className="space-y-4">
+                                {languages.filter(l => formData.languageIds.includes(l._id)).map(lang => {
+                                    const langTopics = topics.filter(t => (t.languageId?._id || t.languageId) === lang._id);
+                                    const isExpanded = expandedLanguages.includes(lang._id);
+                                    const selectedCount = langTopics.filter(t => formData.topicIds.includes(t._id)).length;
+                                    const isAllSelected = langTopics.length > 0 && selectedCount === langTopics.length;
+
+                                    return (
+                                        <div key={lang._id} className="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm transition-all hover:shadow-md">
+                                            {/* Language Header */}
+                                            <div 
+                                                className={`flex items-center justify-between px-4 py-3 cursor-pointer select-none ${isExpanded ? 'bg-indigo-50/50 border-b border-indigo-100' : 'bg-white'}`}
+                                                onClick={() => toggleExpand(lang._id)}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`p-1.5 rounded-lg ${isExpanded ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                                                        {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className={`text-sm font-bold ${isExpanded ? 'text-indigo-900' : 'text-gray-700'}`}>
+                                                            {lang.name}
+                                                        </h4>
+                                                        {selectedCount > 0 && (
+                                                            <span className="text-[10px] text-indigo-500 font-bold uppercase tracking-wider">
+                                                                {selectedCount} topic{selectedCount !== 1 ? 's' : ''} selected
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                
+                                                {isExpanded && langTopics.length > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            selectAllTopicsForLanguage(lang._id, langTopics);
+                                                        }}
+                                                        className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 hover:text-indigo-800 bg-white px-2 py-1 rounded border border-indigo-200"
+                                                    >
+                                                        {isAllSelected ? 'Deselect All' : 'Select All'}
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {/* Topics List (Collapsible Content) */}
+                                            {isExpanded && (
+                                                <div className="p-2 bg-white max-h-60 overflow-y-auto custom-scrollbar">
+                                                    {langTopics.length === 0 ? (
+                                                        <div className="py-4 text-center text-xs text-gray-400 italic">
+                                                            No topics found for this language.
+                                                        </div>
+                                                    ) : (
+                                                        <div className="grid grid-cols-1 gap-1">
+                                                            {langTopics.map(topic => (
+                                                                <label
+                                                                    key={topic._id}
+                                                                    className={`flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer transition-all ${
+                                                                        formData.topicIds.includes(topic._id)
+                                                                            ? 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                                                                            : 'hover:bg-gray-50 text-gray-600 border border-transparent'
+                                                                    }`}
+                                                                >
+                                                                    <div className={`w-5 h-5 rounded flex items-center justify-center border transition-all ${
+                                                                        formData.topicIds.includes(topic._id)
+                                                                            ? 'bg-indigo-600 border-indigo-600 text-white'
+                                                                            : 'bg-white border-gray-300'
+                                                                    }`}>
+                                                                        {formData.topicIds.includes(topic._id) && <CheckCircle className="w-3.5 h-3.5" />}
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={formData.topicIds.includes(topic._id)}
+                                                                            onChange={() => toggleTopic(topic._id)}
+                                                                            className="hidden"
+                                                                        />
+                                                                    </div>
+                                                                    <span className={`text-sm ${formData.topicIds.includes(topic._id) ? 'font-bold' : 'font-medium'}`}>
+                                                                        {topic.name}
+                                                                    </span>
+                                                                </label>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
