@@ -203,9 +203,24 @@ const CPCTable = () => {
         }
 
         // Assign 'No.' based on syllabus order
+        const projectRows = deriveProjectWorkRows();
+
+        // Apply completion date to ALL ongoing Project Work rows if student's course is completed
+        if (studentData && studentData.courseCompleted && studentData.courseCompletedDate) {
+            projectRows.forEach(row => {
+                if (row.ongoing && !row.endDate) {
+                    row.endDate = studentData.courseCompletedDate;
+                    const start = parseISO(row.startDate);
+                    const end = parseISO(studentData.courseCompletedDate);
+                    row.totalDays = differenceInDays(end, start) + 1;
+                    row.ongoing = false;
+                }
+            });
+        }
+
         return {
             topicRows: sortedRows.map((row, idx) => ({ ...row, no: idx + 1 })),
-            projectRows: deriveProjectWorkRows()
+            projectRows
         };
     };
 

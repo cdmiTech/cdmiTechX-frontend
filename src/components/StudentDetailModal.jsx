@@ -48,7 +48,7 @@ const StudentDetailModal = ({ student, onClose }) => {
             const multiIds = Array.isArray(r.languageIds) ? r.languageIds.map(l => String(l?._id || l)) : [];
             return legacyId === normalizedLangId || multiIds.includes(normalizedLangId);
         });
-        
+
         // Use provided topics or fallback to empty
         const topicsToShow = allTopics.length > 0 ? allTopics : [];
         if (topicsToShow.length === 0 && langReports.length === 0) {
@@ -74,12 +74,12 @@ const StudentDetailModal = ({ student, onClose }) => {
                 .map(topic => {
                     const topicId = topic._id;
                     const reportsForTopic = langReports.filter(r => {
-                        const reportTopicIds = Array.isArray(r.topicIds) 
+                        const reportTopicIds = Array.isArray(r.topicIds)
                             ? r.topicIds.map(t => String(t?._id || t))
                             : [];
                         return reportTopicIds.some(id => String(topicId) === id);
                     });
-                    
+
                     if (reportsForTopic.length === 0) {
                         return {
                             topicId,
@@ -92,10 +92,10 @@ const StudentDetailModal = ({ student, onClose }) => {
                         };
                     }
 
-                    const sortedGroupReps = [...reportsForTopic].sort((a,b) => new Date(a.date) - new Date(b.date));
+                    const sortedGroupReps = [...reportsForTopic].sort((a, b) => new Date(a.date) - new Date(b.date));
                     const startDate = sortedGroupReps[0].date;
                     const langLatestDate = sortedGroupReps[sortedGroupReps.length - 1].date;
-                    
+
                     let endDate = null;
                     let totalDays = 0;
 
@@ -141,10 +141,10 @@ const StudentDetailModal = ({ student, onClose }) => {
             });
 
             topicRows = Object.values(topicGroups).map(group => {
-                const sortedGroupReps = [...group.reports].sort((a,b) => new Date(a.date) - new Date(b.date));
+                const sortedGroupReps = [...group.reports].sort((a, b) => new Date(a.date) - new Date(b.date));
                 const startDate = sortedGroupReps[0].date;
                 const langLatestDate = sortedGroupReps[sortedGroupReps.length - 1].date;
-                
+
                 let endDate = null;
                 let totalDays = 0;
 
@@ -184,7 +184,7 @@ const StudentDetailModal = ({ student, onClose }) => {
         setCpcData(sortedRows.map((row, idx) => ({ ...row, no: idx + 1 })));
 
         // Build project work rows in same style
-        const sortedProjectReports = [...langReports].sort((a,b) => new Date(a.date) - new Date(b.date));
+        const sortedProjectReports = [...langReports].sort((a, b) => new Date(a.date) - new Date(b.date));
         const projectState = {};
 
         sortedProjectReports.forEach((report, index) => {
@@ -223,6 +223,19 @@ const StudentDetailModal = ({ student, onClose }) => {
                 ongoing: !item.endDate
             };
         });
+
+        // Apply completion date to ALL ongoing Project rows if student's course is completed
+        if (student && student.courseCompleted && student.courseCompletedDate) {
+            projectRows.forEach(row => {
+                if (row.ongoing && !row.endDate) {
+                    row.endDate = student.courseCompletedDate;
+                    const start = parseISO(row.startDate);
+                    const end = parseISO(student.courseCompletedDate);
+                    row.totalDays = differenceInDays(end, start) + 1;
+                    row.ongoing = false;
+                }
+            });
+        }
 
         setProjectCpcData(projectRows);
     };
@@ -334,9 +347,9 @@ const StudentDetailModal = ({ student, onClose }) => {
                             <div className="flex items-center gap-2">
                                 {/* <div className="p-1 px-2 bg-emerald-100 text-emerald-700 rounded text-xs font-bold uppercase tracking-wider">Report</div> */}
                                 <h3 className="font-bold text-gray-900">
-                                    {Array.isArray(report.languageIds) && report.languageIds.length > 0 
+                                    {Array.isArray(report.languageIds) && report.languageIds.length > 0
                                         ? report.languageIds.map(l => l.name || 'Unknown').join(', ')
-                                        : (report.languageId?.name || '-')} 
+                                        : (report.languageId?.name || '-')}
                                     - {getReportTopicNames(report)}
                                 </h3>
                             </div>
