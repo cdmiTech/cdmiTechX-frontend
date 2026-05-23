@@ -1,10 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { Menu } from 'lucide-react';
+import AuthContext from '../context/AuthContext';
 
 const Layout = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const { refreshUserStatus } = useContext(AuthContext);
+
+    useEffect(() => {
+        refreshUserStatus();
+    }, []);
 
     return (
         <div className="flex bg-gray-100 min-h-screen relative overflow-x-hidden text-gray-900">

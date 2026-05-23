@@ -15,7 +15,8 @@ import {
     FileText,
     Library,
     Files,
-    X
+    X,
+    Award
 } from 'lucide-react';
 
 const facultyLinks = [
@@ -26,6 +27,7 @@ const facultyLinks = [
     { path: '/topics', label: 'Topics', icon: Book },
     { path: '/questions', label: 'Questions', icon: FileQuestion },
     { path: '/students', label: 'Students', icon: Users },
+    { path: '/completed-students', label: 'Completed Students', icon: Award },
     { path: '/workbooks', label: 'Workbooks', icon: Book },
     { path: '/materials', label: 'Materials', icon: FileText },
     { path: '/submissions', label: 'Submissions', icon: Upload },
@@ -65,7 +67,13 @@ const Sidebar = ({ isOpen, onClose }) => {
             return true;
         });
     } else {
-        links = studentLinks;
+        if (user.courseCompleted) {
+            links = studentLinks.filter(link =>
+                ['Materials', 'CPC', 'My Profile'].includes(link.label)
+            );
+        } else {
+            links = studentLinks;
+        }
     }
 
     return (

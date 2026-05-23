@@ -170,6 +170,16 @@ const StudentDetailModal = ({ student, onClose }) => {
         // Sort rows by Topic Order
         const sortedRows = [...topicRows].sort((a, b) => a.order - b.order);
 
+        // Apply completion date to ALL ongoing CPC rows if student's course is completed
+        if (student && student.courseCompleted && student.courseCompletedDate) {
+            sortedRows.forEach(row => {
+                if (row.isStarted && !row.endDate) {
+                    row.endDate = student.courseCompletedDate;
+                    row.totalDays = calculateDays(row.startDate, student.courseCompletedDate);
+                }
+            });
+        }
+
         // Assign 'No.' based on syllabus order
         setCpcData(sortedRows.map((row, idx) => ({ ...row, no: idx + 1 })));
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import api from '../utils/api';
-import { Eye, Search, Calendar, X, Clock, User, CheckCircle, AlertCircle, FileText } from 'lucide-react';
+import { Eye, Search, Calendar, X, Clock, User, CheckCircle, AlertCircle, FileText, Mail } from 'lucide-react';
 import AuthContext from '../context/AuthContext';
 import Pagination from '../components/Pagination';
 import Modal from '../components/Modal';
@@ -8,6 +8,7 @@ import Modal from '../components/Modal';
 const FacultyReport = () => {
     const [stats, setStats] = useState({ submitted: [], notSubmitted: [] });
     const [loading, setLoading] = useState(false);
+    const [sendingReminders, setSendingReminders] = useState(false);
 
     // Filters
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -69,6 +70,29 @@ const FacultyReport = () => {
 
     const handleViewReport = (report) => {
         setSelectedReport(report);
+    };
+
+    const handleSendReminders = async () => {
+        if (stats.notSubmitted.length === 0) return;
+        
+        const confirmMessage = `Are you sure you want to send report missing email notifications to all ${stats.notSubmitted.length} students who have not submitted today's report?`;
+        if (!window.confirm(confirmMessage)) {
+            return;
+        }
+
+        setSendingReminders(true);
+        try {
+            const { data } = await api.post('/reports/remind-missing', {
+                date,
+                facultyId: selectedFaculty
+            });
+            alert(data.message || 'Reminders sent successfully!');
+        } catch (error) {
+            console.error('Error sending report reminders:', error);
+            alert(error.response?.data?.message || 'Failed to send reminders.');
+        } finally {
+            setSendingReminders(false);
+        }
     };
 
     // Pagination logic
@@ -146,9 +170,30 @@ const FacultyReport = () => {
                             <AlertCircle className="w-5 h-5 text-rose-600" />
                             <h2 className="text-lg font-bold text-rose-900">Report Not Submitted</h2>
                         </div>
-                        <span className="bg-rose-100 text-rose-700 px-3 py-1 rounded-full text-xs font-bold">
-                            {stats.notSubmitted.length} Students
-                        </span>
+                        <div className="flex items-center gap-3">
+                            {stats.notSubmitted.length > 0 && (
+                                <button
+                                    onClick={handleSendReminders}
+                                    disabled={sendingReminders}
+                                    className="flex items-center gap-2 px-4 py-1.5 bg-rose-600 text-white font-bold text-xs rounded-xl hover:bg-rose-700 disabled:opacity-50 transition-all shadow-sm active:scale-95 cursor-pointer"
+                                >
+                                    {sendingReminders ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-white"></div>
+                                            Sending...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Mail className="w-3.5 h-3.5" />
+                                            Send Mail
+                                        </>
+                                    )}
+                                </button>
+                            )}
+                            <span className="bg-rose-100 text-rose-700 px-3 py-1 rounded-full text-xs font-bold">
+                                {stats.notSubmitted.length} Students
+                            </span>
+                        </div>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">

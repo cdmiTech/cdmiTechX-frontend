@@ -20,6 +20,7 @@ import Materials from './pages/Materials';
 import StudentMaterials from './pages/StudentMaterials';
 import StudentReport from './pages/StudentReport';
 import FacultyReport from './pages/FacultyReport';
+import CompletedStudents from './pages/CompletedStudents';
 import CPCSelection from './pages/CPCSelection';
 import CPCTable from './pages/CPCTable';
 import Layout from './components/Layout';
@@ -51,6 +52,7 @@ function App() {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/courses" element={<Courses />} />
                 <Route path="/students" element={<Students />} /> {/* Admin needs this to assign faculty */}
+                <Route path="/completed-students" element={<CompletedStudents />} />
                 <Route path="/languages" element={<Languages />} />
                 <Route path="/topics" element={<Topics />} />
                 <Route path="/questions" element={<Questions />} />

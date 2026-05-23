@@ -3,7 +3,7 @@ import api from '../utils/api';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import Pagination from '../components/Pagination';
-import { Plus, Eye, CheckCircle, List } from 'lucide-react';
+import { Plus, Eye, CheckCircle, List, GraduationCap } from 'lucide-react';
 import StudentDetailModal from '../components/StudentDetailModal';
 import { toast } from 'react-toastify';
 
@@ -224,6 +224,19 @@ const Students = () => {
         }
     };
 
+    const handleCompleteCourse = async (student) => {
+        if (window.confirm(`Are you sure you want to mark ${student.name}'s course as Completed?`)) {
+            try {
+                await api.put(`/students/${student._id}/complete-course`);
+                toast.success('Student marked as Course Completed successfully!');
+                fetchStudents(filterFacultyId);
+            } catch (error) {
+                console.error('Error completing course:', error);
+                toast.error(error.response?.data?.message || 'Error marking course completed');
+            }
+        }
+    };
+
     const columns = [
         { header: 'Name', accessor: 'name' },
         { header: 'Email', accessor: 'email' },
@@ -253,7 +266,7 @@ const Students = () => {
                     >
                         <List className="w-4 h-4" />
                     </button>
-               </div>
+                </div>
             )
         },
         {
@@ -274,6 +287,15 @@ const Students = () => {
                             className="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-md transition-colors flex items-center"
                         >
                             <CheckCircle className="w-4 h-4" />
+                        </button>
+                    )}
+                    {row.status !== 'Pending' && !row.courseCompleted && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); handleCompleteCourse(row); }}
+                            title="Mark Course Completed"
+                            className="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-md transition-colors flex items-center"
+                        >
+                            <GraduationCap className="w-4 h-4" />
                         </button>
                     )}
                 </div>

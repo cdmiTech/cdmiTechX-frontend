@@ -192,6 +192,16 @@ const CPCTable = () => {
         // Sort by Topic Order (syllabus order)
         const sortedRows = [...topicRows].sort((a, b) => a.order - b.order);
 
+        // Apply completion date to ALL ongoing CPC rows if student's course is completed
+        if (studentData && studentData.courseCompleted && studentData.courseCompletedDate) {
+            sortedRows.forEach(row => {
+                if (row.isStarted && !row.endDate) {
+                    row.endDate = studentData.courseCompletedDate;
+                    row.totalDays = calculateDays(row.startDate, studentData.courseCompletedDate);
+                }
+            });
+        }
+
         // Assign 'No.' based on syllabus order
         return {
             topicRows: sortedRows.map((row, idx) => ({ ...row, no: idx + 1 })),
