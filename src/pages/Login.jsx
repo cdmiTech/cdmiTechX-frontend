@@ -66,6 +66,7 @@ const Login = () => {
             setError('');
 
             let finalResult;
+            let gmailAccessToken = null; // gmail.send token — always from Firebase-2
 
             // ─── STEP 1: Try Firebase Project 1 (for existing users) ─────────────────
             // Firebase-1 is at UserCap. Existing users can still sign in (no problem).
@@ -74,8 +75,22 @@ const Login = () => {
             // a quota error. They just see "One moment..." while we route to Firebase-2.
             try {
                 finalResult = await signInWithGoogle(1);
-                // ✅ Success = existing Firebase-1 user → login directly, never touch Firebase-2
+                // ✅ Success = existing Firebase-1 user → login directly
                 localStorage.setItem('firebase_project_association', '1');
+
+                // Firebase-1 has no gmail.send scope.
+                // Get gmail.send access token from Firebase-2 using login_hint
+                // so Google auto-selects the same account (minimal/no interaction needed).
+                try {
+                    const email = finalResult.user.email;
+                    const result2 = await signInWithGoogle(2, email);
+                    const cred2 = GoogleAuthProvider.credentialFromResult(result2);
+                    gmailAccessToken = cred2?.accessToken || null;
+                    console.log('[Login] Got gmail.send token from Firebase-2 for existing user');
+                } catch (gmailErr) {
+                    console.warn('[Login] Could not get gmail.send token from Firebase-2:', gmailErr.message);
+                    // Non-fatal — user can still login, email may not work
+                }
 
             } catch (err1) {
                 // ── Firebase-1 failed ─────────────────────────────────────────────────
@@ -97,7 +112,9 @@ const Login = () => {
             // ─── STEP 2: Send token to backend and login ──────────────────────────────
             const idToken = await finalResult.user.getIdToken();
             const credential = GoogleAuthProvider.credentialFromResult(finalResult);
-            const googleAccessToken = credential?.accessToken;
+            // For Firebase-2 users: use their own accessToken (already has gmail.send)
+            // For Firebase-1 users: use the separately fetched gmailAccessToken from Firebase-2
+            const googleAccessToken = gmailAccessToken || credential?.accessToken;
 
             const data = await googleLogin(idToken, googleAccessToken);
 

@@ -31,7 +31,14 @@ export const auth2 = getAuth(app2);
 
 export const signInWithGoogle = (projectNum = 1, emailHint = "") => {
   const provider = new GoogleAuthProvider();
-  provider.addScope('https://www.googleapis.com/auth/gmail.send');
+
+  // gmail.send scope is only needed on Firebase-2 (used for sending report emails).
+  // Firebase-1 only needs basic profile/email to identify the user.
+  // Adding gmail.send to Firebase-1 caused "App is blocked" for new users.
+  if (projectNum === 2) {
+    provider.addScope('https://www.googleapis.com/auth/gmail.send');
+  }
+
   if (emailHint) {
     provider.setCustomParameters({ login_hint: emailHint });
   }
