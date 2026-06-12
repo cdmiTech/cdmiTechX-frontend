@@ -1,7 +1,8 @@
 import { useState, useContext } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { signInWithGoogle } from '../utils/firebase';
-import { GoogleAuthProvider } from 'firebase/auth';
+import { signInWithGoogle, auth } from '../utils/firebase';
+import { GoogleAuthProvider, signInWithCredential, deleteUser } from 'firebase/auth';
+import api from '../utils/api';
 import AuthContext from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import { User, Lock, ArrowRight } from 'lucide-react';
@@ -49,12 +50,29 @@ const Login = () => {
         try {
             setIsSubmitting(true);
             setError('');
-            const result = await signInWithGoogle();
-            const idToken = await result.user.getIdToken();
 
-            // Get Google Access Token for Gmail API
-            const credential = GoogleAuthProvider.credentialFromResult(result);
-            const googleAccessToken = credential.accessToken;
+            // 1. Sign in with Project 2 to trigger Google OAuth and get credentials
+            const result2 = await signInWithGoogle(2);
+            const email = result2.user.email;
+
+            // Get tokens from Project 2 login
+            const idToken = await result2.user.getIdToken();
+            const credential = GoogleAuthProvider.credentialFromResult(result2);
+            const googleAccessToken = credential?.accessToken;
+
+            // 2. Run time check: does user exist in MongoDB?
+            const checkRes = await api.post('/auth/check-email', { email });
+            const isExisting = checkRes.data.exists;
+
+            if (isExisting) {
+                // Don't create new account in second firebase: delete the temporary Project 2 account immediately
+                try {
+                    await deleteUser(result2.user);
+                    console.log('Successfully cleaned up temporary Project 2 user account');
+                } catch (delErr) {
+                    console.error('Failed to clean up temporary Project 2 user:', delErr);
+                }
+            }
 
             const data = await googleLogin(idToken, googleAccessToken);
 
@@ -65,7 +83,7 @@ const Login = () => {
                         email: data.email,
                         name: data.name,
                         googleId: data.googleId,
-                        googleAccessToken: googleAccessToken // Pass to registration page
+                        googleAccessToken: googleAccessToken
                     }
                 });
             } else if (data.status === 'Pending') {
