@@ -1,12 +1,26 @@
 import { useState, useContext } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { signInWithGoogle, auth } from '../utils/firebase';
-import { GoogleAuthProvider, signInWithCredential, deleteUser } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import api from '../utils/api';
 import AuthContext from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import { User, Lock, ArrowRight } from 'lucide-react';
 import logo from './logoX.png'
+const decodeJWT = (token) => {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+    } catch (e) {
+        console.error('Failed to decode JWT:', e);
+        return null;
+    }
+};
+
 const Login = () => {
     const [formData, setFormData] = useState({ identifier: '', password: '' });
     const { login, googleLogin } = useContext(AuthContext);
@@ -51,28 +65,39 @@ const Login = () => {
             setIsSubmitting(true);
             setError('');
 
-            // 1. Sign in with Project 2 to trigger Google OAuth and get credentials
-            const result2 = await signInWithGoogle(2);
-            const email = result2.user.email;
+            let finalResult;
 
-            // Get tokens from Project 2 login
-            const idToken = await result2.user.getIdToken();
-            const credential = GoogleAuthProvider.credentialFromResult(result2);
-            const googleAccessToken = credential?.accessToken;
+            // ─── STEP 1: Try Firebase Project 1 (for existing users) ─────────────────
+            // Firebase-1 is at UserCap. Existing users can still sign in (no problem).
+            // New users will get a quota/capacity error from Firebase-1.
+            // IMPORTANT: Any Firebase-1 failure is handled silently — user never sees
+            // a quota error. They just see "One moment..." while we route to Firebase-2.
+            try {
+                finalResult = await signInWithGoogle(1);
+                // ✅ Success = existing Firebase-1 user → login directly, never touch Firebase-2
+                localStorage.setItem('firebase_project_association', '1');
 
-            // 2. Run time check: does user exist in MongoDB?
-            const checkRes = await api.post('/auth/check-email', { email });
-            const isExisting = checkRes.data.exists;
+            } catch (err1) {
+                // ── Firebase-1 failed ─────────────────────────────────────────────────
+                // This covers ALL cases where Firebase-1 rejects the sign-in:
+                //   • Brand new user      → Firebase-1 at UserCap → route to Firebase-2
+                //   • Returning Firebase-2 user → not in Firebase-1 → route to Firebase-2
+                //
+                // Do NOT show any error. User keeps seeing "One moment..." seamlessly.
+                // Firebase-2 handles both cases correctly:
+                //   • Returning user  → signs in (UserCap NOT incremented — existing user)
+                //   • New user        → signs in (UserCap +1 — correct, genuinely new)
+                console.log('[Login] Firebase-1 failed. Routing to Firebase-2 silently...');
 
-            if (isExisting) {
-                // Don't create new account in second firebase: delete the temporary Project 2 account immediately
-                try {
-                    await deleteUser(result2.user);
-                    console.log('Successfully cleaned up temporary Project 2 user account');
-                } catch (delErr) {
-                    console.error('Failed to clean up temporary Project 2 user:', delErr);
-                }
+                // ✅ Always silently fall through to Firebase-2
+                localStorage.setItem('firebase_project_association', '2');
+                finalResult = await signInWithGoogle(2);
             }
+
+            // ─── STEP 2: Send token to backend and login ──────────────────────────────
+            const idToken = await finalResult.user.getIdToken();
+            const credential = GoogleAuthProvider.credentialFromResult(finalResult);
+            const googleAccessToken = credential?.accessToken;
 
             const data = await googleLogin(idToken, googleAccessToken);
 
