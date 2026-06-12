@@ -1,10 +1,10 @@
 import { useState, useContext } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { signInWithGoogle } from '../utils/firebase';
 import { GoogleAuthProvider } from 'firebase/auth';
 import AuthContext from '../context/AuthContext';
 import { toast } from 'react-toastify';
-import { User, Lock, Chrome, Shield, ArrowRight } from 'lucide-react';
+import { User, Lock, ArrowRight } from 'lucide-react';
 import logo from './logoX.png'
 const Login = () => {
     const [formData, setFormData] = useState({ identifier: '', password: '' });
@@ -174,6 +174,27 @@ const Login = () => {
                         </p>
                     </div>
                 )}
+            
+            {/* Footer Links */}
+            <div className="mt-8 pt-6 border-t border-gray-100 flex justify-center gap-4 text-xs font-semibold text-gray-400">
+                <Link 
+                    to="/privacy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-indigo-600 transition-colors focus:outline-none"
+                >
+                    Privacy Policy
+                </Link>
+                <span>•</span>
+                <Link 
+                    to="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-indigo-600 transition-colors focus:outline-none"
+                >
+                    Terms of Service
+                </Link>
+            </div>
             </div>
         </div>
     );

@@ -4,6 +4,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import GoogleStudentRegistration from './pages/GoogleStudentRegistration';
 import WaitingApproval from './pages/WaitingApproval';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
 import Dashboard from './pages/Dashboard';
 import Courses from './pages/Courses';
 import Students from './pages/Students';
@@ -44,6 +46,8 @@ function App() {
           <Route path="/login-staff" element={<Login />} />
           <Route path="/register-google" element={<GoogleStudentRegistration />} />
           <Route path="/waiting-approval" element={<WaitingApproval />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
 
           <Route element={<ProtectedRoute allowedRoles={['faculty', 'student', 'admin']} />}>
             <Route element={<Layout />}>
