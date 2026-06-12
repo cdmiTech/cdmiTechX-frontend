@@ -176,25 +176,7 @@ const Login = () => {
                 )}
             
             {/* Footer Links */}
-            <div className="mt-8 pt-6 border-t border-gray-100 flex justify-center gap-4 text-xs font-semibold text-gray-400">
-                <Link 
-                    to="/privacy"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-indigo-600 transition-colors focus:outline-none"
-                >
-                    Privacy Policy
-                </Link>
-                <span>•</span>
-                <Link 
-                    to="/terms"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-indigo-600 transition-colors focus:outline-none"
-                >
-                    Terms of Service
-                </Link>
-            </div>
+            
             </div>
         </div>
     );
