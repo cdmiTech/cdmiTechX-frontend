@@ -24,6 +24,7 @@ const decodeJWT = (token) => {
 const Login = () => {
     const [formData, setFormData] = useState({ identifier: '', password: '' });
     const [googleEmail, setGoogleEmail] = useState('');
+    const [isExistingUserFlow, setIsExistingUserFlow] = useState(false);
     const { login, googleLogin } = useContext(AuthContext);
     const navigate = useNavigate();
     const location = useLocation();
@@ -61,7 +62,26 @@ const Login = () => {
         }
     };
 
-    const handleGoogleLogin = async () => {
+    const handleNewUserGoogleLogin = async () => {
+        try {
+            setIsSubmitting(true);
+            setError('');
+            
+            // New users go straight to Firebase-2
+            const finalResult = await signInWithGoogle(2);
+            localStorage.setItem('firebase_project_association', '2');
+            
+            await processGoogleLoginResult(finalResult, 2);
+        } catch (err) {
+            console.error('[Login] New User Firebase-2 failed:', err);
+            const errorMessage = err.response?.data?.message || err.message || 'Google Login failed';
+            setError(errorMessage);
+            toast.error(errorMessage);
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleExistingUserGoogleLogin = async () => {
         if (!googleEmail || !googleEmail.includes('@')) {
             toast.error("Please enter your Gmail address first.");
             return;
@@ -94,6 +114,18 @@ const Login = () => {
                 throw err1;
             }
 
+            await processGoogleLoginResult(finalResult, projectToUse);
+        } catch (err) {
+            console.error('Google Login Error:', err);
+            const errorMessage = err.response?.data?.message || err.message || 'Google Login failed';
+            setError(errorMessage);
+            toast.error(errorMessage);
+            setIsSubmitting(false);
+        }
+    };
+
+    const processGoogleLoginResult = async (finalResult, projectToUse) => {
+        try {
             // ─── STEP 2: Send token to backend and login ──────────────────────────────
             const idToken = await finalResult.user.getIdToken();
             const credential = GoogleAuthProvider.credentialFromResult(finalResult);
@@ -196,37 +228,73 @@ const Login = () => {
                         </button>
                     </form>
                 ) : (
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Your Google Email</label>
-                            <input
-                                type="email"
-                                className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-gray-900 text-sm"
-                                placeholder="student@gmail.com"
-                                value={googleEmail}
-                                onChange={(e) => setGoogleEmail(e.target.value)}
-                                required
-                            />
-                        </div>
+                    <div className="space-y-6">
+                        {!isExistingUserFlow ? (
+                            <div className="space-y-4">
+                                <button
+                                    type="button"
+                                    onClick={handleNewUserGoogleLogin}
+                                    disabled={isSubmitting}
+                                    className="group relative w-full flex items-center justify-center gap-4 py-4 bg-white border border-gray-200 rounded-2xl font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-[0.98] disabled:opacity-50 shadow-sm"
+                                >
+                                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                                    <span>{isSubmitting ? 'One moment...' : 'Sign in with Google'}</span>
+                                </button>
+                                
+                                <div className="text-center mt-6">
+                                    <button 
+                                        type="button"
+                                        onClick={() => setIsExistingUserFlow(true)}
+                                        className="text-sm text-indigo-600 hover:text-indigo-800 font-medium hover:underline transition-all"
+                                    >
+                                        Already have an account? Log in here
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Your Google Email</label>
+                                    <input
+                                        type="email"
+                                        className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-gray-900 text-sm"
+                                        placeholder="student@gmail.com"
+                                        value={googleEmail}
+                                        onChange={(e) => setGoogleEmail(e.target.value)}
+                                        required
+                                    />
+                                </div>
 
-                        <button
-                            type="button"
-                            onClick={handleGoogleLogin}
-                            disabled={isSubmitting || !googleEmail.includes('@')}
-                            className="group relative w-full flex items-center justify-center gap-4 py-4 bg-white border border-gray-200 rounded-2xl font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-[0.98] disabled:opacity-50 shadow-sm"
-                        >
-                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                            <span>{isSubmitting ? 'One moment...' : 'Continue with Google'}</span>
-                        </button>
+                                <button
+                                    type="button"
+                                    onClick={handleExistingUserGoogleLogin}
+                                    disabled={isSubmitting || !googleEmail.includes('@')}
+                                    className="group relative w-full flex items-center justify-center gap-4 py-4 bg-white border border-gray-200 rounded-2xl font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-[0.98] disabled:opacity-50 shadow-sm"
+                                >
+                                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                                    <span>{isSubmitting ? 'One moment...' : 'Continue with Google'}</span>
+                                </button>
 
-                        <div className="flex items-center gap-4">
+                                <div className="text-center mt-6">
+                                    <button 
+                                        type="button"
+                                        onClick={() => setIsExistingUserFlow(false)}
+                                        className="text-sm text-gray-500 hover:text-gray-700 font-medium hover:underline transition-all"
+                                    >
+                                        Back to Sign Up
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex items-center gap-4 pt-4">
                             <div className="h-px bg-gray-100 flex-grow"></div>
                             <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Student Portal</span>
                             <div className="h-px bg-gray-100 flex-grow"></div>
                         </div>
 
                         <p className="text-center text-xs text-gray-500 leading-relaxed px-4">
-                            Please use your registered account. New users will be redirected to complete their registration.
+                            New users will automatically be redirected to complete their registration.
                         </p>
                     </div>
                 )}
