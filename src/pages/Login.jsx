@@ -66,45 +66,19 @@ const Login = () => {
             setError('');
 
             let finalResult;
-            let gmailAccessToken = null; // gmail.send token — always from Firebase-2
 
             // ─── STEP 1: Try Firebase Project 1 (for existing users) ─────────────────
-            // Firebase-1 is at UserCap. Existing users can still sign in (no problem).
-            // New users will get a quota/capacity error from Firebase-1.
-            // IMPORTANT: Any Firebase-1 failure is handled silently — user never sees
-            // a quota error. They just see "One moment..." while we route to Firebase-2.
+            // Firebase-1 has gmail.send scope. Existing users sign in here directly.
+            // New users will fail on Firebase-1 (UserCap) — caught silently below.
             try {
                 finalResult = await signInWithGoogle(1);
-                // ✅ Success = existing Firebase-1 user → login directly
+                // ✅ Existing Firebase-1 user → login directly with gmail.send accessToken
                 localStorage.setItem('firebase_project_association', '1');
 
-                // Firebase-1 has no gmail.send scope.
-                // Get gmail.send access token from Firebase-2 using login_hint
-                // so Google auto-selects the same account (minimal/no interaction needed).
-                try {
-                    const email = finalResult.user.email;
-                    const result2 = await signInWithGoogle(2, email);
-                    const cred2 = GoogleAuthProvider.credentialFromResult(result2);
-                    gmailAccessToken = cred2?.accessToken || null;
-                    console.log('[Login] Got gmail.send token from Firebase-2 for existing user');
-                } catch (gmailErr) {
-                    console.warn('[Login] Could not get gmail.send token from Firebase-2:', gmailErr.message);
-                    // Non-fatal — user can still login, email may not work
-                }
-
             } catch (err1) {
-                // ── Firebase-1 failed ─────────────────────────────────────────────────
-                // This covers ALL cases where Firebase-1 rejects the sign-in:
-                //   • Brand new user      → Firebase-1 at UserCap → route to Firebase-2
-                //   • Returning Firebase-2 user → not in Firebase-1 → route to Firebase-2
-                //
-                // Do NOT show any error. User keeps seeing "One moment..." seamlessly.
-                // Firebase-2 handles both cases correctly:
-                //   • Returning user  → signs in (UserCap NOT incremented — existing user)
-                //   • New user        → signs in (UserCap +1 — correct, genuinely new)
+                // ── Firebase-1 failed (UserCap / new user) ────────────────────────────
+                // Silently route to Firebase-2 — no error shown to user at all.
                 console.log('[Login] Firebase-1 failed. Routing to Firebase-2 silently...');
-
-                // ✅ Always silently fall through to Firebase-2
                 localStorage.setItem('firebase_project_association', '2');
                 finalResult = await signInWithGoogle(2);
             }
@@ -112,9 +86,8 @@ const Login = () => {
             // ─── STEP 2: Send token to backend and login ──────────────────────────────
             const idToken = await finalResult.user.getIdToken();
             const credential = GoogleAuthProvider.credentialFromResult(finalResult);
-            // For Firebase-2 users: use their own accessToken (already has gmail.send)
-            // For Firebase-1 users: use the separately fetched gmailAccessToken from Firebase-2
-            const googleAccessToken = gmailAccessToken || credential?.accessToken;
+            // Both Firebase-1 and Firebase-2 now have gmail.send scope
+            const googleAccessToken = credential?.accessToken;
 
             const data = await googleLogin(idToken, googleAccessToken);
 
