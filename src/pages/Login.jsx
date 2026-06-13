@@ -23,6 +23,7 @@ const decodeJWT = (token) => {
 
 const Login = () => {
     const [formData, setFormData] = useState({ identifier: '', password: '' });
+    const [googleEmail, setGoogleEmail] = useState('');
     const { login, googleLogin } = useContext(AuthContext);
     const navigate = useNavigate();
     const location = useLocation();
@@ -61,26 +62,36 @@ const Login = () => {
     };
 
     const handleGoogleLogin = async () => {
+        if (!googleEmail || !googleEmail.includes('@')) {
+            toast.error("Please enter your Gmail address first.");
+            return;
+        }
+
         try {
             setIsSubmitting(true);
             setError('');
 
             let finalResult;
+            let projectToUse = 2; // Default to Firebase-2 for new users
 
-            // ─── STEP 1: Try Firebase Project 1 (for existing users) ─────────────────
-            // Firebase-1 has gmail.send scope. Existing users sign in here directly.
-            // New users will fail on Firebase-1 (UserCap) — caught silently below.
             try {
-                finalResult = await signInWithGoogle(1);
-                // ✅ Existing Firebase-1 user → login directly with gmail.send accessToken
-                localStorage.setItem('firebase_project_association', '1');
+                const response = await api.post('/auth/check-email', { email: googleEmail });
+                if (response.data.exists && response.data.firebaseProject) {
+                    projectToUse = response.data.firebaseProject;
+                    console.log(`[Login] User found. Routing to Firebase-${projectToUse}`);
+                } else {
+                    console.log('[Login] New user. Routing to Firebase-2');
+                }
+            } catch (checkErr) {
+                console.warn('[Login] Error checking email, defaulting to Firebase-2', checkErr);
+            }
 
+            try {
+                finalResult = await signInWithGoogle(projectToUse, googleEmail);
+                localStorage.setItem('firebase_project_association', projectToUse.toString());
             } catch (err1) {
-                // ── Firebase-1 failed (UserCap / new user) ────────────────────────────
-                // Silently route to Firebase-2 — no error shown to user at all.
-                console.log('[Login] Firebase-1 failed. Routing to Firebase-2 silently...');
-                localStorage.setItem('firebase_project_association', '2');
-                finalResult = await signInWithGoogle(2);
+                console.error(`[Login] Firebase-${projectToUse} failed:`, err1);
+                throw err1;
             }
 
             // ─── STEP 2: Send token to backend and login ──────────────────────────────
@@ -185,15 +196,27 @@ const Login = () => {
                         </button>
                     </form>
                 ) : (
-                    <div className="space-y-8">
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Your Google Email</label>
+                            <input
+                                type="email"
+                                className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-gray-900 text-sm"
+                                placeholder="student@gmail.com"
+                                value={googleEmail}
+                                onChange={(e) => setGoogleEmail(e.target.value)}
+                                required
+                            />
+                        </div>
+
                         <button
                             type="button"
                             onClick={handleGoogleLogin}
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || !googleEmail.includes('@')}
                             className="group relative w-full flex items-center justify-center gap-4 py-4 bg-white border border-gray-200 rounded-2xl font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-[0.98] disabled:opacity-50 shadow-sm"
                         >
                             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                            <span>{isSubmitting ? 'One moment...' : 'Sign in with Google'}</span>
+                            <span>{isSubmitting ? 'One moment...' : 'Continue with Google'}</span>
                         </button>
 
                         <div className="flex items-center gap-4">
