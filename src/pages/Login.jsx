@@ -24,7 +24,7 @@ const decodeJWT = (token) => {
 const Login = () => {
     const [formData, setFormData] = useState({ identifier: '', password: '' });
     const [googleEmail, setGoogleEmail] = useState('');
-    const [isExistingUserFlow, setIsExistingUserFlow] = useState(false);
+    const [showEmailInput, setShowEmailInput] = useState(false);
     const { login, googleLogin } = useContext(AuthContext);
     const navigate = useNavigate();
     const location = useLocation();
@@ -229,30 +229,32 @@ const Login = () => {
                     </form>
                 ) : (
                     <div className="space-y-6">
-                        {!isExistingUserFlow ? (
-                            <div className="space-y-4">
+                        {!showEmailInput ? (
+                            <div className="space-y-4 animate-in fade-in duration-300">
+                                <p className="text-center font-medium text-gray-600 mb-6 px-4">
+                                    Welcome to CDMI TechX! Please select an option to get started:
+                                </p>
+                                
                                 <button
                                     type="button"
                                     onClick={handleNewUserGoogleLogin}
                                     disabled={isSubmitting}
-                                    className="group relative w-full flex items-center justify-center gap-4 py-4 bg-white border border-gray-200 rounded-2xl font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-[0.98] disabled:opacity-50 shadow-sm"
+                                    className="group relative w-full flex items-center justify-center gap-4 py-4 bg-indigo-600 border border-transparent rounded-2xl font-bold text-white hover:bg-indigo-700 transition-all active:scale-[0.98] disabled:opacity-50 shadow-md"
                                 >
-                                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                                    <span>{isSubmitting ? 'One moment...' : 'Sign in with Google'}</span>
+                                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-6 h-6 bg-white rounded-full p-1 group-hover:scale-110 transition-transform" />
+                                    <span>{isSubmitting ? 'One moment...' : 'Create New Account'}</span>
                                 </button>
                                 
-                                <div className="text-center mt-6">
-                                    <button 
-                                        type="button"
-                                        onClick={() => setIsExistingUserFlow(true)}
-                                        className="text-sm text-indigo-600 hover:text-indigo-800 font-medium hover:underline transition-all"
-                                    >
-                                        Already have an account? Log in here
-                                    </button>
-                                </div>
+                                <button 
+                                    type="button"
+                                    onClick={() => setShowEmailInput(true)}
+                                    className="group relative w-full flex items-center justify-center gap-4 py-4 bg-white border border-gray-200 rounded-2xl font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-[0.98] shadow-sm"
+                                >
+                                    Already have an account?
+                                </button>
                             </div>
                         ) : (
-                            <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
+                            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                                 <div className="space-y-2">
                                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Your Google Email</label>
                                     <input
@@ -269,19 +271,18 @@ const Login = () => {
                                     type="button"
                                     onClick={handleExistingUserGoogleLogin}
                                     disabled={isSubmitting || !googleEmail.includes('@')}
-                                    className="group relative w-full flex items-center justify-center gap-4 py-4 bg-white border border-gray-200 rounded-2xl font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-[0.98] disabled:opacity-50 shadow-sm"
+                                    className="group relative w-full flex items-center justify-center gap-4 py-4 bg-indigo-600 border border-transparent rounded-2xl font-bold text-white hover:bg-indigo-700 transition-all active:scale-[0.98] disabled:opacity-50 shadow-md"
                                 >
-                                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                                    <span>{isSubmitting ? 'One moment...' : 'Continue with Google'}</span>
+                                    <span>{isSubmitting ? 'Verifying...' : 'Continue'}</span>
                                 </button>
 
                                 <div className="text-center mt-6">
                                     <button 
                                         type="button"
-                                        onClick={() => setIsExistingUserFlow(false)}
+                                        onClick={() => setShowEmailInput(false)}
                                         className="text-sm text-gray-500 hover:text-gray-700 font-medium hover:underline transition-all"
                                     >
-                                        Back to Sign Up
+                                        Back
                                     </button>
                                 </div>
                             </div>
