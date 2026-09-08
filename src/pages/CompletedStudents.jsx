@@ -38,7 +38,7 @@ const CompletedStudents = () => {
     const fetchCompletedStudents = async (facultyId) => {
         try {
             setLoading(true);
-            const params = facultyId ? `&facultyId=${facultyId}` : '';
+            const params = facultyId !== undefined ? `&facultyId=${facultyId}` : '';
             const { data } = await api.get(`/students?completed=true${params}`);
             setStudents(data);
         } catch (error) {
@@ -106,13 +106,7 @@ const CompletedStudents = () => {
         setFilterName(name);
         setCurrentPage(1);
         if (name.trim()) {
-            // Fetch completed across all faculties
-            try {
-                const { data } = await api.get(`/students?completed=true`);
-                setStudents(data);
-            } catch (err) {
-                console.error(err);
-            }
+            await fetchCompletedStudents('');
         } else {
             await fetchCompletedStudents(filterFacultyId);
         }
@@ -246,15 +240,12 @@ const CompletedStudents = () => {
                         onRowClick={openDetailModal}
                     />
 
-                    {filteredStudents.length > itemsPerPage && (
-                        <div className="mt-6 flex justify-end">
-                            <Pagination
-                                currentPage={currentPage}
-                                totalPages={Math.ceil(filteredStudents.length / itemsPerPage)}
-                                onPageChange={setCurrentPage}
-                            />
-                        </div>
-                    )}
+                    <Pagination
+                        totalItems={filteredStudents.length}
+                        itemsPerPage={itemsPerPage}
+                        currentPage={currentPage}
+                        onPageChange={setCurrentPage}
+                    />
                 </>
             )}
 

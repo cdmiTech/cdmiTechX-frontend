@@ -7,8 +7,100 @@ import {
     ChevronLeft,
     ChevronRight,
     Search,
-    BookOpen
+    BookOpen,
+    FileSpreadsheet,
+    FileArchive,
+    File
 } from 'lucide-react';
+
+const renderFilePreview = (item) => {
+    const url = item?.url || '';
+    const name = item?.name || '';
+    const ext = (name.split('.').pop() || url.split('.').pop() || '').toLowerCase();
+    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+    const isPdf = ext === 'pdf' || url.toLowerCase().includes('.pdf');
+    const isCsvOrExcel = ['csv', 'xlsx', 'xls'].includes(ext);
+    const isDoc = ['doc', 'docx', 'txt', 'rtf'].includes(ext);
+    const isZip = ['zip', 'rar', '7z', 'tar', 'gz'].includes(ext);
+
+    if (isImage) {
+        return (
+            <img
+                src={url}
+                alt={name || 'image preview'}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.style.display = 'none';
+                    if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                }}
+            />
+        );
+    }
+
+    if (isPdf) {
+        return (
+            <>
+                <img
+                    src={url.replace(/\.pdf$/i, '.jpg')}
+                    alt="thumbnail"
+                    className="w-full h-full object-cover object-top"
+                    onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.style.display = 'none';
+                        if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                    }}
+                />
+                <div style={{ display: 'none' }} className="w-full h-full flex flex-col items-center justify-center bg-red-50 text-red-500">
+                    <FileText className="w-10 h-10 mb-1" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-700 px-1.5 py-0.5 rounded">PDF</span>
+                </div>
+            </>
+        );
+    }
+
+    if (isCsvOrExcel) {
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-emerald-50 text-emerald-600 p-2">
+                <FileSpreadsheet className="w-10 h-10 mb-1" />
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">
+                    {ext.toUpperCase() || 'CSV'}
+                </span>
+            </div>
+        );
+    }
+
+    if (isDoc) {
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-blue-50 text-blue-600 p-2">
+                <FileText className="w-10 h-10 mb-1" />
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">
+                    {ext.toUpperCase() || 'DOC'}
+                </span>
+            </div>
+        );
+    }
+
+    if (isZip) {
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-amber-50 text-amber-600 p-2">
+                <FileArchive className="w-10 h-10 mb-1" />
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
+                    {ext.toUpperCase() || 'ZIP'}
+                </span>
+            </div>
+        );
+    }
+
+    return (
+        <div className="w-full h-full flex flex-col items-center justify-center bg-indigo-50 text-indigo-600 p-2">
+            <File className="w-10 h-10 mb-1" />
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded">
+                {ext ? ext.toUpperCase() : 'FILE'}
+            </span>
+        </div>
+    );
+};
 
 const StudentMaterials = () => {
     const [materials, setMaterials] = useState([]);
@@ -86,7 +178,7 @@ const StudentMaterials = () => {
                         <BookOpen className="w-8 h-8 text-indigo-600" />
                         Course Materials
                     </h1>
-                    <p className="text-gray-500 mt-1">Access all PDFs and resources for your enrolled course.</p>
+                    <p className="text-gray-500 mt-1">Access all files, documents, and resources for your enrolled course.</p>
                 </div>
 
                 <div className="relative group w-full md:w-72">
@@ -146,20 +238,20 @@ const StudentMaterials = () => {
                                                 <>
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); prevSlide(material._id, material.pdfs.length); }}
-                                                        className="absolute left-[-10px] sm:left-0 top-1/2 -translate-y-1/2 z-20 p-2 bg-white border border-gray-100 rounded-full shadow-lg hover:bg-gray-50 transition-all text-gray-400 hover:text-indigo-600 shadow-md active:scale-95"
+                                                        className="absolute left-[-10px] sm:left-0 top-1/2 -translate-y-1/2 z-20 p-2 bg-white border border-gray-100 rounded-full shadow-lg hover:bg-gray-50 transition-all text-gray-400 hover:text-indigo-600 active:scale-95"
                                                     >
                                                         <ChevronLeft className="w-5 h-5" />
                                                     </button>
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); nextSlide(material._id, material.pdfs.length); }}
-                                                        className="absolute right-[-10px] sm:right-0 top-1/2 -translate-y-1/2 z-20 p-2 bg-white border border-gray-100 rounded-full shadow-lg hover:bg-gray-50 transition-all text-gray-400 hover:text-indigo-600 shadow-md active:scale-95"
+                                                        className="absolute right-[-10px] sm:right-0 top-1/2 -translate-y-1/2 z-20 p-2 bg-white border border-gray-100 rounded-full shadow-lg hover:bg-gray-50 transition-all text-gray-400 hover:text-indigo-600 active:scale-95"
                                                     >
                                                         <ChevronRight className="w-5 h-5" />
                                                     </button>
                                                 </>
                                             )}
 
-                                            {/* PDF Carousel Grid */}
+                                            {/* Carousel Grid */}
                                             <div className="relative overflow-hidden px-2 sm:px-10">
                                                 <div className="flex transition-transform duration-500 ease-in-out">
                                                     {Array.from({ length: Math.ceil(material.pdfs.length / itemsPerSlide) }).map((_, slideIdx) => {
@@ -175,33 +267,20 @@ const StudentMaterials = () => {
                                                                         className="group relative bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all h-48 flex flex-col items-center justify-center overflow-hidden"
                                                                     >
                                                                         <div className="mb-3 w-full h-32 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center border border-gray-100 group-hover:border-indigo-200 transition-colors">
-                                                                            {/* PDF Thumbnail (First Page) */}
-                                                                            <img
-                                                                                src={pdf.url.replace('.pdf', '.jpg')}
-                                                                                alt="thumbnail"
-                                                                                className="w-full h-full object-cover object-top"
-                                                                                onError={(e) => {
-                                                                                    e.target.onerror = null;
-                                                                                    e.target.style.display = 'none';
-                                                                                    e.target.nextSibling.style.display = 'block';
-                                                                                }}
-                                                                            />
-                                                                            <div style={{ display: 'none' }}>
-                                                                                <FileText className="w-10 h-10 text-red-500" />
-                                                                            </div>
+                                                                            {renderFilePreview(pdf)}
                                                                         </div>
                                                                         <span className="text-[10px] sm:text-xs font-medium text-gray-700 text-center line-clamp-1 px-1">
                                                                             {pdf.name || pdf.public_id.split('/').pop().split('_').slice(0, -1).join('_')}
                                                                         </span>
 
-                                                                        {/* Hover Overlay - View only */}
+                                                                        {/* Hover Overlay - View / Download */}
                                                                         <div className="absolute inset-0 bg-indigo-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
                                                                             <a
                                                                                 href={pdf.url}
                                                                                 target="_blank"
                                                                                 rel="noopener noreferrer"
                                                                                 className="p-3 bg-white text-indigo-600 rounded-full hover:bg-indigo-50 transition-colors shadow-lg active:scale-95 transform hover:scale-110"
-                                                                                title="View PDF"
+                                                                                title="View / Download File"
                                                                             >
                                                                                 <Eye size={24} />
                                                                             </a>
@@ -233,7 +312,7 @@ const StudentMaterials = () => {
                                         </div>
                                     ) : (
                                         <div className="py-10 text-center">
-                                            <p className="text-sm text-gray-400 italic">No PDF files available for this material yet.</p>
+                                            <p className="text-sm text-gray-400 italic">No files available for this material yet.</p>
                                         </div>
                                     )}
                                 </div>

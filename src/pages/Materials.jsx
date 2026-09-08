@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../utils/api';
 
 import Modal from '../components/Modal';
-import { Plus, ChevronDown, ChevronRight, FileText, Trash2, Edit2, Upload, X, ChevronLeft, Eye, Check } from 'lucide-react';
+import { Plus, ChevronDown, ChevronRight, FileText, Trash2, Edit2, Upload, X, ChevronLeft, Eye, Check, FileSpreadsheet, FileArchive, File } from 'lucide-react';
 import {
     DndContext,
     closestCenter,
@@ -19,6 +19,95 @@ import {
     useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+
+const renderFilePreview = (item) => {
+    const url = item?.url || '';
+    const name = item?.name || '';
+    const ext = (name.split('.').pop() || url.split('.').pop() || '').toLowerCase();
+    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+    const isPdf = ext === 'pdf' || url.toLowerCase().includes('.pdf');
+    const isCsvOrExcel = ['csv', 'xlsx', 'xls'].includes(ext);
+    const isDoc = ['doc', 'docx', 'txt', 'rtf'].includes(ext);
+    const isZip = ['zip', 'rar', '7z', 'tar', 'gz'].includes(ext);
+
+    if (isImage) {
+        return (
+            <img
+                src={url}
+                alt={name || 'image preview'}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.style.display = 'none';
+                    if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                }}
+            />
+        );
+    }
+
+    if (isPdf) {
+        return (
+            <>
+                <img
+                    src={url.replace(/\.pdf$/i, '.jpg')}
+                    alt="thumbnail"
+                    className="w-full h-full object-cover object-top"
+                    onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.style.display = 'none';
+                        if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                    }}
+                />
+                <div style={{ display: 'none' }} className="w-full h-full flex flex-col items-center justify-center bg-red-50 text-red-500">
+                    <FileText className="w-10 h-10 mb-1" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-700 px-1.5 py-0.5 rounded">PDF</span>
+                </div>
+            </>
+        );
+    }
+
+    if (isCsvOrExcel) {
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-emerald-50 text-emerald-600 p-2">
+                <FileSpreadsheet className="w-10 h-10 mb-1" />
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">
+                    {ext.toUpperCase() || 'CSV'}
+                </span>
+            </div>
+        );
+    }
+
+    if (isDoc) {
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-blue-50 text-blue-600 p-2">
+                <FileText className="w-10 h-10 mb-1" />
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">
+                    {ext.toUpperCase() || 'DOC'}
+                </span>
+            </div>
+        );
+    }
+
+    if (isZip) {
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-amber-50 text-amber-600 p-2">
+                <FileArchive className="w-10 h-10 mb-1" />
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
+                    {ext.toUpperCase() || 'ZIP'}
+                </span>
+            </div>
+        );
+    }
+
+    return (
+        <div className="w-full h-full flex flex-col items-center justify-center bg-indigo-50 text-indigo-600 p-2">
+            <File className="w-10 h-10 mb-1" />
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded">
+                {ext ? ext.toUpperCase() : 'FILE'}
+            </span>
+        </div>
+    );
+};
 
 const SortableMaterialItem = ({ material, children }) => {
     const {
@@ -77,19 +166,7 @@ const SortablePDFItem = ({ pdf, materialId, onDelete, itemsPerSlide }) => {
             className={`relative group bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all h-48 flex flex-col items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing ${isDragging ? 'bg-indigo-50 border-indigo-300 ring-2 ring-indigo-500/20' : ''}`}
         >
             <div className="mb-3 w-full h-32 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center border border-gray-100 group-hover:border-indigo-200 transition-colors">
-                <img
-                    src={pdf.url.replace('.pdf', '.jpg')}
-                    alt="thumbnail"
-                    className="w-full h-full object-cover object-top"
-                    onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'block';
-                    }}
-                />
-                <div style={{ display: 'none' }}>
-                    <FileText className="w-10 h-10 text-red-500" />
-                </div>
+                {renderFilePreview(pdf)}
             </div>
             <span className="text-[10px] sm:text-xs font-medium text-gray-700 text-center line-clamp-1 px-1">
                 {pdf.name || pdf.public_id.split('/').pop().split('_').slice(0, -1).join('_')}
@@ -101,7 +178,7 @@ const SortablePDFItem = ({ pdf, materialId, onDelete, itemsPerSlide }) => {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-2.5 bg-white text-indigo-600 rounded-full hover:bg-indigo-50 transition-colors shadow-lg active:scale-95"
-                    title="View PDF"
+                    title="View / Download File"
                 >
                     <Eye size={20} />
                 </a>
@@ -109,7 +186,7 @@ const SortablePDFItem = ({ pdf, materialId, onDelete, itemsPerSlide }) => {
                 <button
                     onClick={() => onDelete(materialId, pdf.public_id)}
                     className="p-2.5 bg-white text-rose-600 rounded-full hover:bg-rose-50 transition-colors shadow-lg active:scale-95"
-                    title="Delete PDF"
+                    title="Delete File"
                 >
                     <Trash2 size={20} />
                 </button>
@@ -278,12 +355,13 @@ const Materials = () => {
 
     const handleAppendPDF = async (materialId) => {
         if (uploadData.pdfs.length === 0) {
-            alert('Please select at least one PDF file');
+            alert('Please select at least one file');
             return;
         }
 
         const data = new FormData();
         uploadData.pdfs.forEach(file => {
+            data.append('file', file);
             data.append('pdf', file);
         });
         if (uploadData.name) data.append('name', uploadData.name);
@@ -294,10 +372,10 @@ const Materials = () => {
             fetchMaterials();
             setUploadData({ name: '', pdfs: [] });
             // Form stays open — user can upload more without clicking the button again
-            alert('PDF(s) uploaded successfully');
+            alert('File(s) uploaded successfully');
         } catch (error) {
-            console.error('Error uploading PDF:', error);
-            alert(error.response?.data?.message || 'Error uploading PDF');
+            console.error('Error uploading file:', error);
+            alert(error.response?.data?.message || 'Error uploading file');
         } finally {
             setLoading(false);
         }
@@ -401,7 +479,7 @@ const Materials = () => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Materials Management</h1>
-                    <p className="text-gray-500 mt-1">Upload and organize course PDFs for students.</p>
+                    <p className="text-gray-500 mt-1">Upload and organize course materials and files for students.</p>
                 </div>
                 <button
                     onClick={() => setIsModalOpen(true)}
@@ -506,7 +584,7 @@ const Materials = () => {
                                                 }
                                             }}
                                             className="text-gray-400 hover:text-green-600 transition-colors"
-                                            title="Upload PDF"
+                                            title="Upload File"
                                         >
                                             <Upload className="w-4 h-4" />
                                         </button>
@@ -529,7 +607,7 @@ const Materials = () => {
                                                 <div className="flex items-center justify-between mb-4">
                                                     <h4 className="text-sm font-bold text-gray-800 flex items-center">
                                                         <Upload className="w-4 h-4 mr-2 text-green-600" />
-                                                        Upload New Sub-Material
+                                                        Upload New Sub-Material / File
                                                     </h4>
                                                     <button onClick={() => setShowUploadForm(prev => ({ ...prev, [material._id]: false }))} className="text-gray-400 hover:text-gray-600">
                                                         <X className="w-4 h-4" />
@@ -537,31 +615,24 @@ const Materials = () => {
                                                 </div>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div>
-                                                        <label className="block text-xs font-medium text-gray-700 mb-1">Sub-Material Name</label>
+                                                        <label className="block text-xs font-medium text-gray-700 mb-1">Sub-Material Name (Optional)</label>
                                                         <input
                                                             type="text"
                                                             className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-green-500 outline-none"
-                                                            placeholder="e.g. Chapter 1 Introduction"
+                                                            placeholder="e.g. Dataset 1 / Chapter 1"
                                                             value={uploadData.name}
                                                             onChange={e => setUploadData({ ...uploadData, name: e.target.value })}
                                                             onKeyDown={(e) => e.stopPropagation()}
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label className="block text-xs font-medium text-gray-700 mb-1">Select PDF</label>
+                                                        <label className="block text-xs font-medium text-gray-700 mb-1">Select File(s) (Any format: PDF, CSV, Excel, Doc, Image, Zip, etc.)</label>
                                                         <div className="relative">
                                                             <input
                                                                 type="file"
-                                                                accept="application/pdf"
                                                                 multiple
                                                                 onChange={e => {
                                                                     const files = Array.from(e.target.files);
-                                                                    const invalidFiles = files.filter(f => f.type !== 'application/pdf');
-                                                                    if (invalidFiles.length > 0) {
-                                                                        alert('Only PDF files are allowed');
-                                                                        e.target.value = '';
-                                                                        return;
-                                                                    }
                                                                     setUploadData({ ...uploadData, pdfs: files });
                                                                 }}
                                                                 className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
@@ -582,7 +653,7 @@ const Materials = () => {
                                         )}
 
                                         {material.pdfs.length === 0 ? (
-                                            <p className="text-sm text-gray-500 italic text-center py-4">No PDFs in this material.</p>
+                                            <p className="text-sm text-gray-500 italic text-center py-4">No files in this material.</p>
                                         ) : (
                                             <div className="relative">
                                                 {/* PDF Carousel - ALL slides always in DOM for cross-slide drag support */}

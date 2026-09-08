@@ -52,7 +52,7 @@ const Students = () => {
 
     const fetchStudents = async (facultyId) => {
         try {
-            const params = facultyId ? `?facultyId=${facultyId}` : '';
+            const params = facultyId !== undefined ? `?facultyId=${facultyId}` : '';
             const { data } = await api.get(`/students${params}`);
             setStudents(data);
         } catch (error) {

@@ -14,31 +14,38 @@ const StudentDetailModal = ({ student, onClose }) => {
     const [languageTopics, setLanguageTopics] = useState([]);
 
     useEffect(() => {
-        if (student) {
-            fetchData();
+        if (student?._id) {
+            fetchAllData();
         }
-    }, [student, activeTab]);
+    }, [student?._id]);
 
-    const fetchData = async () => {
+    const fetchAllData = async () => {
         setLoading(true);
         try {
-            if (activeTab === 'submission') {
-                const { data } = await api.get(`/submissions/student/${student._id}`);
-                setSubmissions(data);
-            } else if (activeTab === 'report' || activeTab === 'cpc') {
-                const { data } = await api.get(`/reports/faculty?studentId=${student._id}`);
-                const studentReports = data.submitted || [];
-                setReports(studentReports.sort((a, b) => new Date(b.date) - new Date(a.date)));
-
-                if (activeTab === 'cpc' && selectedLanguage) {
-                    processCPC(studentReports, selectedLanguage._id, languageTopics);
-                }
-            }
+            const targetFacultyId = student.facultyId?._id || student.facultyId || '';
+            const facultyQuery = targetFacultyId ? `&facultyId=${targetFacultyId}` : '';
+            const [subRes, repRes] = await Promise.all([
+                api.get(`/submissions/student/${student._id}`),
+                api.get(`/reports/faculty?studentId=${student._id}${facultyQuery}`)
+            ]);
+            setSubmissions(subRes.data || []);
+            const studentReports = repRes.data.submitted || [];
+            setReports(studentReports.sort((a, b) => new Date(b.date) - new Date(a.date)));
         } catch (error) {
             console.error('Error fetching student details:', error);
         } finally {
             setLoading(false);
         }
+    };
+
+    const normalizeDate = (value) => {
+        if (!value) return null;
+        if (value instanceof Date) return value;
+        if (typeof value === 'string') {
+            const parsed = parseISO(value);
+            return isNaN(parsed) ? new Date(value) : parsed;
+        }
+        return new Date(value);
     };
 
     const processCPC = (allReports, langId, allTopics = []) => {
@@ -53,6 +60,7 @@ const StudentDetailModal = ({ student, onClose }) => {
         const topicsToShow = allTopics.length > 0 ? allTopics : [];
         if (topicsToShow.length === 0 && langReports.length === 0) {
             setCpcData([]);
+            setProjectCpcData([]);
             return;
         }
 
@@ -60,8 +68,12 @@ const StudentDetailModal = ({ student, onClose }) => {
         const globalLatestDate = sortedAll.length > 0 ? sortedAll[0].date : null;
 
         const calculateDays = (start, end) => {
-            const startDate = parseISO(start);
-            const endDate = end ? parseISO(end) : new Date();
+            if (!start) return 0;
+            const startDate = normalizeDate(start);
+            const endDate = end ? normalizeDate(end) : new Date();
+            if (!startDate || isNaN(startDate.getTime()) || !endDate || isNaN(endDate.getTime())) {
+                return 0;
+            }
             return differenceInDays(endDate, startDate) + 1;
         };
 
@@ -117,7 +129,7 @@ const StudentDetailModal = ({ student, onClose }) => {
                     };
                 });
         } else {
-            // Fallback: group by available reports (old logic)
+            // Fallback: group by available reports
             const topicGroups = {};
             langReports.forEach(report => {
                 const topicNames = getReportTopicNames(report);
@@ -125,7 +137,6 @@ const StudentDetailModal = ({ student, onClose }) => {
                     return;
                 }
 
-                // Use first topic id for grouping if present
                 const topicId = Array.isArray(report.topicIds) && report.topicIds.length > 0
                     ? report.topicIds[0]?._id || report.topicIds[0]
                     : (report.topicId?._id || report.topicId);
@@ -171,19 +182,22 @@ const StudentDetailModal = ({ student, onClose }) => {
         const sortedRows = [...topicRows].sort((a, b) => a.order - b.order);
 
         // Apply completion date to ALL ongoing CPC rows if student's course is completed
-        if (student && student.courseCompleted && student.courseCompletedDate) {
-            sortedRows.forEach(row => {
-                if (row.isStarted && !row.endDate) {
-                    row.endDate = student.courseCompletedDate;
-                    row.totalDays = calculateDays(row.startDate, student.courseCompletedDate);
-                }
-            });
+        if (student && student.courseCompleted) {
+            const completionDate = student.courseCompletedDate || globalLatestDate;
+            if (completionDate) {
+                sortedRows.forEach(row => {
+                    if (row.isStarted && !row.endDate) {
+                        row.endDate = completionDate;
+                        row.totalDays = calculateDays(row.startDate, completionDate);
+                    }
+                });
+            }
         }
 
         // Assign 'No.' based on syllabus order
         setCpcData(sortedRows.map((row, idx) => ({ ...row, no: idx + 1 })));
 
-        // Build project work rows in same style
+        // Build project work rows
         const sortedProjectReports = [...langReports].sort((a, b) => new Date(a.date) - new Date(b.date));
         const projectState = {};
 
@@ -210,9 +224,7 @@ const StudentDetailModal = ({ student, onClose }) => {
 
         const projectRows = Object.values(projectState).map((item, idx) => {
             const endDate = item.endDate;
-            const start = parseISO(item.startDate);
-            const end = endDate ? parseISO(endDate) : new Date();
-            const totalDays = differenceInDays(end, start) + 1;
+            const totalDays = item.startDate ? calculateDays(item.startDate, endDate || new Date()) : 0;
             return {
                 no: idx + 1,
                 projectTitle: item.title,
@@ -225,16 +237,17 @@ const StudentDetailModal = ({ student, onClose }) => {
         });
 
         // Apply completion date to ALL ongoing Project rows if student's course is completed
-        if (student && student.courseCompleted && student.courseCompletedDate) {
-            projectRows.forEach(row => {
-                if (row.ongoing && !row.endDate) {
-                    row.endDate = student.courseCompletedDate;
-                    const start = parseISO(row.startDate);
-                    const end = parseISO(student.courseCompletedDate);
-                    row.totalDays = differenceInDays(end, start) + 1;
-                    row.ongoing = false;
-                }
-            });
+        if (student && student.courseCompleted) {
+            const completionDate = student.courseCompletedDate || globalLatestDate;
+            if (completionDate) {
+                projectRows.forEach(row => {
+                    if (row.ongoing && !row.endDate) {
+                        row.endDate = completionDate;
+                        row.totalDays = calculateDays(row.startDate, completionDate);
+                        row.ongoing = false;
+                    }
+                });
+            }
         }
 
         setProjectCpcData(projectRows);
@@ -262,11 +275,34 @@ const StudentDetailModal = ({ student, onClose }) => {
 
         if (langReports.length === 0) return 0;
 
-        const firstDate = parseISO(langReports[0].date);
-        const lastDate = parseISO(langReports[langReports.length - 1].date);
-        if (isNaN(firstDate) || isNaN(lastDate)) return 0;
+        const firstDate = normalizeDate(langReports[0].date);
+        const lastDate = normalizeDate(langReports[langReports.length - 1].date);
+        if (!firstDate || isNaN(firstDate.getTime()) || !lastDate || isNaN(lastDate.getTime())) return 0;
 
         return differenceInDays(lastDate, firstDate) + 1;
+    };
+
+    const getLanguageDates = (langId) => {
+        const normalizedLangId = String(langId || '');
+        const langReports = reports
+            .filter(r => {
+                const legacyId = String(r.languageId?._id || r.languageId || '');
+                const multiIds = Array.isArray(r.languageIds) ? r.languageIds.map(l => String(l?._id || l)) : [];
+                return legacyId === normalizedLangId || multiIds.includes(normalizedLangId);
+            })
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        if (langReports.length === 0) return { startDate: null, endDate: null, duration: 0 };
+
+        const startDate = langReports[0].date;
+        const endDate = langReports[langReports.length - 1].date;
+        const first = normalizeDate(startDate);
+        const last = normalizeDate(endDate);
+        const duration = (first && last && !isNaN(first.getTime()) && !isNaN(last.getTime()))
+            ? differenceInDays(last, first) + 1
+            : 0;
+
+        return { startDate, endDate, duration };
     };
 
     useEffect(() => {
@@ -283,7 +319,7 @@ const StudentDetailModal = ({ student, onClose }) => {
             }
         };
         fetchTopics();
-    }, [selectedLanguage]);
+    }, [selectedLanguage, reports, activeTab]);
 
     const renderSubmissionTab = () => (
         <div className="space-y-6">
@@ -301,14 +337,14 @@ const StudentDetailModal = ({ student, onClose }) => {
                                 <h3 className="font-bold text-gray-900">{sub.questionId?.question || 'Unknown Question'}</h3>
                             </div>
                             <div className="text-xs text-gray-500 bg-white px-2 py-1 rounded border whitespace-nowrap ml-3 font-medium">
-                                {format(parseISO(sub.submittedAt), 'dd MMM yyyy, hh:mm a')}
+                                {sub.submittedAt ? format(normalizeDate(sub.submittedAt), 'dd MMM yyyy, hh:mm a') : '-'}
                             </div>
                         </div>
                         <div className="grid md:grid-cols-2 gap-6 mt-4">
                             <div>
                                 <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Answer</h4>
                                 <div className="bg-white p-3 rounded border text-sm text-gray-800 whitespace-pre-wrap min-h-[60px]">
-                                    {sub.answerText}
+                                    {sub.answerText || 'No text answer provided'}
                                 </div>
                             </div>
                             {sub.imageUrl && (
@@ -345,41 +381,81 @@ const StudentDetailModal = ({ student, onClose }) => {
                     <div key={report._id} className="border border-gray-200 rounded-lg p-5 hover:border-indigo-200 transition-all bg-gray-50/50">
                         <div className="flex justify-between items-start mb-3">
                             <div className="flex items-center gap-2">
-                                {/* <div className="p-1 px-2 bg-emerald-100 text-emerald-700 rounded text-xs font-bold uppercase tracking-wider">Report</div> */}
                                 <h3 className="font-bold text-gray-900">
                                     {Array.isArray(report.languageIds) && report.languageIds.length > 0
                                         ? report.languageIds.map(l => l.name || 'Unknown').join(', ')
                                         : (report.languageId?.name || '-')}
-                                    - {getReportTopicNames(report)}
+                                    {' - '}{getReportTopicNames(report)}
                                 </h3>
                             </div>
                             <div className="text-xs text-gray-500 bg-white px-2 py-1 rounded border font-medium">
-                                {format(parseISO(report.date), 'dd MMM yyyy')}
+                                {report.date ? format(normalizeDate(report.date), 'dd MMM yyyy') : '-'}
                             </div>
                         </div>
+                        {Array.isArray(report.projectWorkTitles) && report.projectWorkTitles.length > 0 && (
+                            <div className="mb-2">
+                                <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
+                                    Project: {report.projectWorkTitles.join(', ')}
+                                </span>
+                            </div>
+                        )}
                         <div className="mt-4">
                             <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Description</h4>
                             <div className="bg-white p-4 rounded-xl border border-gray-100 text-sm text-gray-700 leading-relaxed italic">
                                 "{report.description}"
                             </div>
                         </div>
-                        {/* <div className="mt-4 flex gap-4 text-[11px] text-gray-500 pt-3 border-t font-medium">
-                            <span className="flex items-center gap-1"><Book className="w-3 h-3" /> <span className="text-gray-400">Language:</span> {report.languageId?.name || '-'}</span>
-                        </div> */}
                     </div>
                 ))
             )}
         </div>
     );
 
+    const getAvailableLanguages = () => {
+        const langMap = new Map();
+        if (Array.isArray(student?.allowedLanguageIds)) {
+            student.allowedLanguageIds.forEach(l => {
+                if (l && typeof l === 'object' && l._id) {
+                    langMap.set(String(l._id), l);
+                } else if (l) {
+                    langMap.set(String(l), { _id: String(l), name: 'Language' });
+                }
+            });
+        }
+        if (Array.isArray(reports)) {
+            reports.forEach(r => {
+                if (r.languageId && (r.languageId._id || r.languageId)) {
+                    const id = String(r.languageId._id || r.languageId);
+                    const name = r.languageId?.name || 'Language';
+                    if (!langMap.has(id) || langMap.get(id)?.name === 'Language') {
+                        langMap.set(id, { _id: id, name });
+                    }
+                }
+                if (Array.isArray(r.languageIds)) {
+                    r.languageIds.forEach(l => {
+                        if (l && (l._id || l)) {
+                            const id = String(l._id || l);
+                            const name = l?.name || 'Language';
+                            if (!langMap.has(id) || langMap.get(id)?.name === 'Language') {
+                                langMap.set(id, { _id: id, name });
+                            }
+                        }
+                    });
+                }
+            });
+        }
+        return Array.from(langMap.values());
+    };
+
     const renderCPCTab = () => {
-        const totalSum = cpcData.reduce((acc, row) => acc + row.totalDays, 0);
+        const availableLanguages = getAvailableLanguages();
+        const langStats = selectedLanguage ? getLanguageDates(selectedLanguage._id) : null;
 
         return (
             <div className="space-y-6">
                 {!selectedLanguage ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {student.allowedLanguageIds?.map(lang => (
+                        {availableLanguages.map(lang => (
                             <button
                                 key={lang._id}
                                 onClick={() => setSelectedLanguage(lang)}
@@ -389,7 +465,7 @@ const StudentDetailModal = ({ student, onClose }) => {
                                     <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                                         <Book className="w-5 h-5" />
                                     </div>
-                                    <div>
+                                    <div className="text-left">
                                         <div className="font-bold text-gray-800">{lang.name}</div>
                                         <div className="text-xs text-gray-500">Duration: {getLanguageOverallDuration(lang._id)} {getLanguageOverallDuration(lang._id) === 1 ? 'Day' : 'Days'}</div>
                                     </div>
@@ -397,15 +473,53 @@ const StudentDetailModal = ({ student, onClose }) => {
                                 <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
                             </button>
                         ))}
-                        {(!student.allowedLanguageIds || student.allowedLanguageIds.length === 0) && (
+                        {availableLanguages.length === 0 && (
                             <div className="col-span-full text-center py-10 text-gray-400 italic">No assigned languages found.</div>
                         )}
                     </div>
                 ) : (
                     <div className="space-y-6 animate-in fade-in duration-300">
-                        <button onClick={() => setSelectedLanguage(null)} className="text-sm font-bold text-indigo-600 flex items-center gap-1 hover:underline mb-2">
+                        <button onClick={() => setSelectedLanguage(null)} className="text-sm font-bold text-indigo-600 flex items-center gap-1 hover:underline mb-2 cursor-pointer">
                             ← Back to Languages
                         </button>
+
+                        {/* Overall Language Dates & Duration Summary Card */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                                    <Book className="w-4 h-4" />
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Language</div>
+                                    <div className="text-sm font-bold text-gray-900 truncate">{selectedLanguage.name}</div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+                                    <Calendar className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Start Date</div>
+                                    <div className="text-sm font-bold text-gray-900">
+                                        {langStats?.startDate ? format(normalizeDate(langStats.startDate), 'dd MMM yyyy') : '-'}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                                    <Clock className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">End Date / Duration</div>
+                                    <div className="text-sm font-bold text-gray-900">
+                                        {langStats?.endDate ? format(normalizeDate(langStats.endDate), 'dd MMM yyyy') : '-'}
+                                        {langStats?.duration ? ` (${langStats.duration} ${langStats.duration === 1 ? 'Day' : 'Days'})` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Topics CPC Table */}
                         <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
                             <table className="w-full text-left border-collapse">
                                 <thead>
@@ -425,9 +539,11 @@ const StudentDetailModal = ({ student, onClose }) => {
                                             <tr key={row.no} className="hover:bg-indigo-50/30 transition-colors">
                                                 <td className="px-4 py-3 text-xs font-bold text-gray-400">{row.no}</td>
                                                 <td className="px-4 py-3 text-sm font-bold text-gray-800">{row.topicName}</td>
-                                                <td className="px-4 py-3 text-xs font-semibold text-gray-700">{row.startDate ? format(parseISO(row.startDate), 'dd MMM yyyy') : '-'}</td>
                                                 <td className="px-4 py-3 text-xs font-semibold text-gray-700">
-                                                    {row.endDate ? format(parseISO(row.endDate), 'dd MMM yyyy') : (
+                                                    {row.startDate ? format(normalizeDate(row.startDate), 'dd MMM yyyy') : '-'}
+                                                </td>
+                                                <td className="px-4 py-3 text-xs font-semibold text-gray-700">
+                                                    {row.endDate ? format(normalizeDate(row.endDate), 'dd MMM yyyy') : (
                                                         row.isStarted ? (
                                                             <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-widest">Ongoing</span>
                                                         ) : '-'
@@ -464,9 +580,11 @@ const StudentDetailModal = ({ student, onClose }) => {
                                                 <tr key={`${row.projectTitle}-${row.no}`} className="hover:bg-indigo-50/30 transition-colors">
                                                     <td className="px-4 py-3 text-xs font-bold text-gray-400">{row.no}</td>
                                                     <td className="px-4 py-3 text-sm font-bold text-gray-800">{row.projectTitle}</td>
-                                                    <td className="px-4 py-3 text-xs font-semibold text-gray-700">{row.startDate ? format(parseISO(row.startDate), 'dd MMM yyyy') : '-'}</td>
                                                     <td className="px-4 py-3 text-xs font-semibold text-gray-700">
-                                                        {row.endDate ? format(parseISO(row.endDate), 'dd MMM yyyy') : (
+                                                        {row.startDate ? format(normalizeDate(row.startDate), 'dd MMM yyyy') : '-'}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-xs font-semibold text-gray-700">
+                                                        {row.endDate ? format(normalizeDate(row.endDate), 'dd MMM yyyy') : (
                                                             row.ongoing ? <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold">Ongoing</span> : '-'
                                                         )}
                                                     </td>
