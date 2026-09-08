@@ -74,7 +74,7 @@ const FacultyReport = () => {
 
     const handleSendReminders = async () => {
         if (stats.notSubmitted.length === 0) return;
-        
+
         const confirmMessage = `Are you sure you want to send report missing email notifications to all ${stats.notSubmitted.length} students who have not submitted today's report?`;
         if (!window.confirm(confirmMessage)) {
             return;
@@ -171,7 +171,7 @@ const FacultyReport = () => {
                             <h2 className="text-lg font-bold text-rose-900">Report Not Submitted</h2>
                         </div>
                         <div className="flex items-center gap-3">
-                            {stats.notSubmitted.length > 0 && (
+                            {/* {stats.notSubmitted.length > 0 && (
                                 <button
                                     onClick={handleSendReminders}
                                     disabled={sendingReminders}
@@ -189,7 +189,7 @@ const FacultyReport = () => {
                                         </>
                                     )}
                                 </button>
-                            )}
+                            )} */}
                             <span className="bg-rose-100 text-rose-700 px-3 py-1 rounded-full text-xs font-bold">
                                 {stats.notSubmitted.length} Students
                             </span>
@@ -275,7 +275,7 @@ const FacultyReport = () => {
                                             <td className="px-6 py-4">
                                                 <div className="text-xs space-y-1">
                                                     <p className="font-bold text-indigo-600 uppercase tracking-tighter">
-                                                        {report.languageIds && report.languageIds.length > 0 
+                                                        {report.languageIds && report.languageIds.length > 0
                                                             ? report.languageIds.map(l => l?.name).filter(Boolean).join(', ')
                                                             : (report.languageId?.name || '-')}
                                                     </p>
@@ -348,7 +348,7 @@ const FacultyReport = () => {
                                 <div className="space-y-1">
                                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Language(s)</span>
                                     <p className="text-lg font-bold text-indigo-600">
-                                        {selectedReport.languageIds && selectedReport.languageIds.length > 0 
+                                        {selectedReport.languageIds && selectedReport.languageIds.length > 0
                                             ? selectedReport.languageIds.map(l => l?.name).filter(Boolean).join(', ')
                                             : (selectedReport.languageId?.name || '-')}
                                     </p>
