@@ -53,12 +53,13 @@ const FacultyManagement = () => {
     };
 
     const handleDelete = async (faculty) => {
-        if (window.confirm('Are you sure you want to delete this faculty?')) {
+        if (window.confirm(`Are you sure you want to disable ${faculty.name}? They will not be able to login, but all their created courses, languages, topics, and student data will remain intact.`)) {
             try {
                 await api.delete(`/faculty/${faculty._id}`);
                 fetchFaculties();
             } catch (error) {
                 console.error('Error deleting faculty:', error);
+                alert(error.response?.data?.message || 'Error deleting faculty');
             }
         }
     };
