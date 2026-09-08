@@ -361,7 +361,6 @@ const Materials = () => {
 
         const data = new FormData();
         uploadData.pdfs.forEach(file => {
-            data.append('file', file);
             data.append('pdf', file);
         });
         if (uploadData.name) data.append('name', uploadData.name);
