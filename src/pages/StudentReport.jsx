@@ -210,6 +210,42 @@ const StudentReport = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (!formData.inTime) {
+            toast.warning('Please enter In Time');
+            return;
+        }
+
+        if (!formData.outTime) {
+            toast.warning('Please enter Out Time');
+            return;
+        }
+
+        if (!formData.typingTest) {
+            toast.warning('Please select whether you completed Typing Test (Yes or No)');
+            return;
+        }
+
+        if (formData.typingTest === 'Yes' && (!formData.typingWpm || !formData.typingWpm.toString().trim())) {
+            toast.warning('Please enter Typing Test WPM');
+            return;
+        }
+
+        if (!formData.lecture) {
+            toast.warning('Please select whether you attended the Lecture');
+            return;
+        }
+
+        if (formData.languageIds.length === 0) {
+            toast.warning('Please select at least one Language');
+            return;
+        }
+
+        if (formData.topicIds.length === 0) {
+            toast.warning('Please select at least one Topic');
+            return;
+        }
+
         const selectedLanguages = languages.filter(l => formData.languageIds.includes(l._id));
         const languageName = selectedLanguages.map(l => l.name).join(', ');
 
@@ -218,13 +254,13 @@ const StudentReport = () => {
         const selectedProjectWorkTitles = Array.isArray(formData.projectWorkTitles) ? formData.projectWorkTitles.filter(Boolean) : [];
         const finalProjectWorkTitles = [...new Set([...selectedProjectWorkTitles, ...[newProjectWorkTitle.trim()].filter(Boolean)])];
 
-        if (formData.languageIds.length === 0 || formData.topicIds.length === 0 || !formData.description) {
-            toast.warning('Please select at least one language, one topic, and provide a description');
+        if (isProjectWorkSelected && finalProjectWorkTitles.length === 0) {
+            toast.warning('Please select or enter a Project Work Title when Project Work topic is selected.');
             return;
         }
 
-        if (isProjectWorkSelected && finalProjectWorkTitles.length === 0) {
-            toast.warning('Please select or enter a Project Work Title when Project Work topic is selected.');
+        if (!formData.description || !formData.description.trim()) {
+            toast.warning('Please enter Description');
             return;
         }
 
@@ -535,10 +571,11 @@ const StudentReport = () => {
                             <div>
                                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                                     <Clock className="w-3.5 h-3.5 text-indigo-600" />
-                                    In Time
+                                    In Time <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="time"
+                                    required
                                     value={formData.inTime}
                                     onChange={(e) => setFormData({ ...formData, inTime: e.target.value })}
                                     className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-sm text-gray-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
@@ -548,10 +585,11 @@ const StudentReport = () => {
                             <div>
                                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                                     <Clock className="w-3.5 h-3.5 text-indigo-600" />
-                                    Out Time
+                                    Out Time <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="time"
+                                    required
                                     value={formData.outTime}
                                     onChange={(e) => setFormData({ ...formData, outTime: e.target.value })}
                                     className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-sm text-gray-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
@@ -563,7 +601,7 @@ const StudentReport = () => {
                         <div className="space-y-2.5">
                             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
                                 <Keyboard className="w-3.5 h-3.5 text-indigo-600" />
-                                Typing Test
+                                Typing Test <span className="text-red-500">*</span>
                             </label>
                             <div className="grid grid-cols-2 gap-3">
                                 {[
@@ -597,11 +635,12 @@ const StudentReport = () => {
                             {formData.typingTest === 'Yes' && (
                                 <div className="mt-2.5 p-3.5 bg-indigo-50/50 border border-indigo-100 rounded-xl space-y-1.5 animate-in fade-in duration-200">
                                     <label className="block text-xs font-bold text-indigo-900 flex items-center gap-1">
-                                        Typing Test WPM (Words Per Minute)
+                                        Typing Test WPM (Words Per Minute) <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="number"
                                         min="0"
+                                        required
                                         placeholder="Enter WPM (e.g. 35)"
                                         value={formData.typingWpm}
                                         onChange={(e) => setFormData({ ...formData, typingWpm: e.target.value })}
@@ -616,7 +655,7 @@ const StudentReport = () => {
                         <div>
                             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                                 <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
-                                Did you attend the Lecture ?
+                                Did you attend the Lecture ? <span className="text-red-500">*</span>
                             </label>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-2.5">
                                 {[
@@ -651,7 +690,7 @@ const StudentReport = () => {
 
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">
-                            Language(s)
+                            Language(s) <span className="text-red-500">*</span>
                             <span className="ml-2 text-xs text-indigo-500 font-normal">
                                 ({formData.languageIds.length} selected)
                             </span>
@@ -673,7 +712,7 @@ const StudentReport = () => {
 
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">
-                            Topics Grouped by Language
+                            Topics Grouped by Language <span className="text-red-500">*</span>
                             {formData.languageIds.length > 0 && (
                                 <span className="ml-2 text-xs text-indigo-500 font-normal">
                                     ({formData.topicIds.length} selected)
@@ -778,13 +817,14 @@ const StudentReport = () => {
                     {formData.topicIds.some(id => topics.find(t => t._id === id && t.name?.toLowerCase() === 'project work')) && (
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Ongoing Project Work (select one or more)</label>
-                                {ongoingProjectWorkTitles.length === 0 ? (
-                                    <p className="text-sm text-gray-500">No ongoing project titles found yet.</p>
-                                ) : (
-                                    <div className="border border-gray-300 rounded-xl p-3 max-h-48 overflow-y-auto">
+                                <label className="block text-sm font-bold text-gray-700 mb-2">
+                                    Project Work Title <span className="text-red-500">*</span>
+                                </label>
+                                {ongoingProjectWorkTitles.length > 0 && (
+                                    <div className="border border-gray-300 rounded-xl p-3 max-h-48 overflow-y-auto mb-3">
+                                        <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Select Ongoing Project:</p>
                                         {ongoingProjectWorkTitles.map(title => (
-                                            <label key={title} className="flex items-center gap-2 mb-2 last:mb-0">
+                                            <label key={title} className="flex items-center gap-2 mb-2 last:mb-0 cursor-pointer">
                                                 <input
                                                     type="checkbox"
                                                     value={title}
@@ -807,14 +847,11 @@ const StudentReport = () => {
                                         ))}
                                     </div>
                                 )}
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Project Work Title</label>
                                 <input
                                     type="text"
                                     value={newProjectWorkTitle}
                                     onChange={(e) => setNewProjectWorkTitle(e.target.value)}
-                                    placeholder="Enter new project work title..."
+                                    placeholder="Or enter new project work title..."
                                     className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
                                 />
                                 <p className="text-xs text-gray-500 mt-1">If entering a new title, previous project(s) will be completed automatically.</p>
@@ -823,7 +860,9 @@ const StudentReport = () => {
                     )}
 
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Description</label>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                            Description <span className="text-red-500">*</span>
+                        </label>
                         <textarea
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
