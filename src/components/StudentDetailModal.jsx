@@ -401,7 +401,7 @@ const StudentDetailModal = ({ student, onClose }) => {
                         )}
                         <div className="mt-4">
                             <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Description</h4>
-                            <div className="bg-white p-4 rounded-xl border border-gray-100 text-sm text-gray-700 leading-relaxed italic">
+                            <div className="bg-white p-4 rounded-xl border border-gray-100 text-sm text-gray-700 leading-relaxed italic whitespace-pre-wrap">
                                 "{report.description}"
                             </div>
                         </div>

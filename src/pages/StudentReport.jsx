@@ -5,7 +5,7 @@ import { format, isSameDay, parseISO } from 'date-fns';
 import api from '../utils/api';
 import AuthContext from '../context/AuthContext';
 import Modal from '../components/Modal';
-import { FileText, Calendar as CalendarIcon, CheckCircle, AlertCircle, ChevronDown, ChevronRight, Layers } from 'lucide-react';
+import { FileText, Calendar as CalendarIcon, CheckCircle, AlertCircle, ChevronDown, ChevronRight, Layers, Clock, BookOpen, Keyboard } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const StudentReport = () => {
@@ -22,6 +22,11 @@ const StudentReport = () => {
         languageIds: [],
         topicIds: [],
         projectWorkTitles: [],
+        inTime: '',
+        outTime: '',
+        typingTest: '',
+        typingWpm: '',
+        lecture: '',
         description: ''
     });
     const [expandedLanguages, setExpandedLanguages] = useState([]);
@@ -100,12 +105,12 @@ const StudentReport = () => {
     };
 
     useEffect(() => {
-        const filteredReports = formData.languageIds.length > 0 
+        const filteredReports = formData.languageIds.length > 0
             ? reports.filter(r => {
                 const multiIds = Array.isArray(r.languageIds) ? r.languageIds.map(l => (l?._id || l)?.toString()) : [];
                 const legacyId = (r.languageId?._id || r.languageId || '')?.toString();
                 return formData.languageIds.some(id => id === legacyId || multiIds.includes(id));
-              }) 
+            })
             : reports;
         setOngoingProjectWorkTitles(computeOngoingProjects(filteredReports));
     }, [reports, formData.languageIds]);
@@ -132,7 +137,7 @@ const StudentReport = () => {
             const newLanguageIds = already
                 ? prev.languageIds.filter(id => id !== langId)
                 : [...prev.languageIds, langId];
-            
+
             let newTopicIds = prev.topicIds;
             if (already) {
                 // If removing a language, remove its topics too
@@ -148,18 +153,18 @@ const StudentReport = () => {
                 projectWorkTitles: already ? prev.projectWorkTitles : prev.projectWorkTitles // keep project work titles for now or reset if appropriate
             };
         });
-        
+
         // Auto-expand if newly selected
         if (!formData.languageIds.includes(langId)) {
             setExpandedLanguages(prev => [...new Set([...prev, langId])]);
         }
-        
+
         setNewProjectWorkTitle('');
     };
 
     const toggleExpand = (langId) => {
-        setExpandedLanguages(prev => 
-            prev.includes(langId) 
+        setExpandedLanguages(prev =>
+            prev.includes(langId)
                 ? prev.filter(id => id !== langId)
                 : [...prev, langId]
         );
@@ -170,8 +175,8 @@ const StudentReport = () => {
         setFormData(prev => {
             const otherTopicIds = prev.topicIds.filter(id => !langTopicIds.includes(id));
             const allSelected = langTopicIds.every(id => prev.topicIds.includes(id));
-            
-            const newTopicIds = allSelected 
+
+            const newTopicIds = allSelected
                 ? otherTopicIds // Deselect all for this language
                 : [...new Set([...prev.topicIds, ...langTopicIds])]; // Select all for this language
 
@@ -207,7 +212,7 @@ const StudentReport = () => {
         e.preventDefault();
         const selectedLanguages = languages.filter(l => formData.languageIds.includes(l._id));
         const languageName = selectedLanguages.map(l => l.name).join(', ');
-        
+
         const selectedTopics = topics.filter(t => formData.topicIds.includes(t._id));
         const isProjectWorkSelected = selectedTopics.some(t => t.name?.toLowerCase() === 'project work');
         const selectedProjectWorkTitles = Array.isArray(formData.projectWorkTitles) ? formData.projectWorkTitles.filter(Boolean) : [];
@@ -225,6 +230,32 @@ const StudentReport = () => {
 
         setLoading(true);
         try {
+            const formatTime12Hour = (timeStr) => {
+                if (!timeStr) return '-';
+                const [hours, minutes] = timeStr.split(':');
+                if (hours === undefined || minutes === undefined) return timeStr;
+                const h = parseInt(hours, 10);
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                const formattedHour = h % 12 || 12;
+                return `${String(formattedHour).padStart(2, '0')}:${minutes} ${ampm}`;
+            };
+
+            let typingTestText = '-';
+            if (formData.typingTest === 'Yes') {
+                typingTestText = formData.typingWpm ? `Yes (${formData.typingWpm} WPM)` : 'Yes';
+            } else if (formData.typingTest === 'No') {
+                typingTestText = 'No';
+            }
+
+            const headerDetails = [
+                `In time - ${formData.inTime ? formatTime12Hour(formData.inTime) : '-'}`,
+                `Out time - ${formData.outTime ? formatTime12Hour(formData.outTime) : '-'}`,
+                `Typing test - ${typingTestText}`,
+                `Lecture - ${formData.lecture || '-'}`
+            ];
+
+            const formattedDescription = `${headerDetails.join('\n')}\n\nDescription:\n${formData.description.trim()}`;
+
             const payload = {
                 date: format(new Date(), 'yyyy-MM-dd'),
                 googleAccessToken: user?.googleAccessToken,
@@ -233,7 +264,7 @@ const StudentReport = () => {
                 topicIds: formData.topicIds,
                 topicNames: selectedTopics.map(t => t.name).join(', '),
                 projectWorkTitles: finalProjectWorkTitles,
-                description: formData.description
+                description: formattedDescription
             };
 
             if (user?.googleId && !user?.googleAccessToken) {
@@ -243,13 +274,23 @@ const StudentReport = () => {
             await api.post('/reports', payload);
             toast.success('Report submitted successfully');
             setIsModalOpen(false);
-            setFormData({ languageIds: [], topicIds: [], projectWorkTitles: [], description: '' });
+            setFormData({
+                languageIds: [],
+                topicIds: [],
+                projectWorkTitles: [],
+                inTime: '',
+                outTime: '',
+                typingTest: '',
+                typingWpm: '',
+                lecture: '',
+                description: ''
+            });
             setNewProjectWorkTitle('');
 
             // Refresh reports
             const { data } = await api.get('/reports/student');
             setReports(data.data);
-            
+
             // Redirect to Gmail Sent folder after successful submission
             window.open('https://mail.google.com/mail/u/0/#sent', '_blank');
         } catch (error) {
@@ -271,7 +312,7 @@ const StudentReport = () => {
                     <div className="mt-1 flex flex-col items-center">
                         <div className="w-2 h-2 bg-green-500 rounded-full mb-1"></div>
                         <div className="text-[10px] leading-tight text-indigo-600 font-bold hidden sm:block truncate w-full px-1 text-center">
-                            {report.languageIds && report.languageIds.length > 0 
+                            {report.languageIds && report.languageIds.length > 0
                                 ? report.languageIds.map(l => l?.name).filter(Boolean).join(', ')
                                 : report.languageId?.name}
                         </div>
@@ -463,6 +504,7 @@ const StudentReport = () => {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 title="Submit Today's Report"
+                maxWidth="max-w-2xl"
             >
                 <form onSubmit={handleSubmit} className="space-y-6 p-2">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -483,6 +525,127 @@ const StudentReport = () => {
                                 readOnly
                                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-500 cursor-not-allowed"
                             />
+                        </div>
+                    </div>
+
+                    {/* Time, Typing Test, and Lecture Details (Above Languages) */}
+                    <div className="bg-gray-50/80 border border-gray-200/80 rounded-2xl p-4 space-y-4">
+                        {/* In Time & Out Time */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                                    In Time
+                                </label>
+                                <input
+                                    type="time"
+                                    value={formData.inTime}
+                                    onChange={(e) => setFormData({ ...formData, inTime: e.target.value })}
+                                    className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-sm text-gray-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                                    Out Time
+                                </label>
+                                <input
+                                    type="time"
+                                    value={formData.outTime}
+                                    onChange={(e) => setFormData({ ...formData, outTime: e.target.value })}
+                                    className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-sm text-gray-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Typing Test: Yes / No with conditional WPM input */}
+                        <div className="space-y-2.5">
+                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                                <Keyboard className="w-3.5 h-3.5 text-indigo-600" />
+                                Typing Test
+                            </label>
+                            <div className="grid grid-cols-2 gap-3">
+                                {[
+                                    { value: 'Yes', label: 'Yes' },
+                                    { value: 'No', label: 'No' }
+                                ].map((item) => (
+                                    <button
+                                        key={item.value}
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({
+                                            ...prev,
+                                            typingTest: prev.typingTest === item.value ? '' : item.value,
+                                            typingWpm: item.value === 'No' ? '' : prev.typingWpm
+                                        }))}
+                                        className={`px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border transition-all flex items-center justify-center gap-2 ${formData.typingTest === item.value
+                                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-100'
+                                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                            }`}
+                                    >
+                                        <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center flex-shrink-0 ${formData.typingTest === item.value ? 'border-white bg-indigo-600' : 'border-gray-400 bg-white'
+                                            }`}>
+                                            {formData.typingTest === item.value && (
+                                                <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                            )}
+                                        </div>
+                                        <span>{item.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+
+                            {formData.typingTest === 'Yes' && (
+                                <div className="mt-2.5 p-3.5 bg-indigo-50/50 border border-indigo-100 rounded-xl space-y-1.5 animate-in fade-in duration-200">
+                                    <label className="block text-xs font-bold text-indigo-900 flex items-center gap-1">
+                                        Typing Test WPM (Words Per Minute)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        placeholder="Enter WPM (e.g. 35)"
+                                        value={formData.typingWpm}
+                                        onChange={(e) => setFormData({ ...formData, typingWpm: e.target.value })}
+                                        className="w-full px-3.5 py-2.5 bg-white border border-indigo-200 rounded-xl text-sm text-gray-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                                        autoFocus
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Lecture Section */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+                                Did you attend the Lecture ?
+                            </label>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-2.5">
+                                {[
+                                    { value: 'Yes', label: 'Yes' },
+                                    { value: 'No', label: 'No' },
+                                    { value: 'Task solving lecture', label: 'Task solving lecture' }
+                                ].map((item) => (
+                                    <button
+                                        key={item.value}
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({
+                                            ...prev,
+                                            lecture: prev.lecture === item.value ? '' : item.value
+                                        }))}
+                                        className={`px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border transition-all flex items-center justify-center gap-2 ${formData.lecture === item.value
+                                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-100'
+                                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                            }`}
+                                    >
+                                        <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center flex-shrink-0 ${formData.lecture === item.value ? 'border-white bg-indigo-600' : 'border-gray-400 bg-white'
+                                            }`}>
+                                            {formData.lecture === item.value && (
+                                                <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                            )}
+                                        </div>
+                                        <span className="text-xs sm:text-sm font-semibold">{item.label}</span>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
 
@@ -533,7 +696,7 @@ const StudentReport = () => {
                                     return (
                                         <div key={lang._id} className="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm transition-all hover:shadow-md">
                                             {/* Language Header */}
-                                            <div 
+                                            <div
                                                 className={`flex items-center justify-between px-4 py-3 cursor-pointer select-none ${isExpanded ? 'bg-indigo-50/50 border-b border-indigo-100' : 'bg-white'}`}
                                                 onClick={() => toggleExpand(lang._id)}
                                             >
@@ -552,7 +715,7 @@ const StudentReport = () => {
                                                         )}
                                                     </div>
                                                 </div>
-                                                
+
                                                 {isExpanded && langTopics.length > 0 && (
                                                     <button
                                                         type="button"
@@ -579,17 +742,15 @@ const StudentReport = () => {
                                                             {langTopics.map(topic => (
                                                                 <label
                                                                     key={topic._id}
-                                                                    className={`flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer transition-all ${
-                                                                        formData.topicIds.includes(topic._id)
-                                                                            ? 'bg-indigo-50 text-indigo-700 border border-indigo-100'
-                                                                            : 'hover:bg-gray-50 text-gray-600 border border-transparent'
-                                                                    }`}
+                                                                    className={`flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer transition-all ${formData.topicIds.includes(topic._id)
+                                                                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                                                                        : 'hover:bg-gray-50 text-gray-600 border border-transparent'
+                                                                        }`}
                                                                 >
-                                                                    <div className={`w-5 h-5 rounded flex items-center justify-center border transition-all ${
-                                                                        formData.topicIds.includes(topic._id)
-                                                                            ? 'bg-indigo-600 border-indigo-600 text-white'
-                                                                            : 'bg-white border-gray-300'
-                                                                    }`}>
+                                                                    <div className={`w-5 h-5 rounded flex items-center justify-center border transition-all ${formData.topicIds.includes(topic._id)
+                                                                        ? 'bg-indigo-600 border-indigo-600 text-white'
+                                                                        : 'bg-white border-gray-300'
+                                                                        }`}>
                                                                         {formData.topicIds.includes(topic._id) && <CheckCircle className="w-3.5 h-3.5" />}
                                                                         <input
                                                                             type="checkbox"
