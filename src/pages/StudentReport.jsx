@@ -254,7 +254,7 @@ const StudentReport = () => {
                 `Lecture - ${formData.lecture || '-'}`
             ];
 
-            const formattedDescription = `${headerDetails.join('\n')}\n\nDescription:\n${formData.description.trim()}`;
+            const formattedDescription = `${headerDetails.join('\n')}\n\n${formData.description.trim()}`;
 
             const payload = {
                 date: format(new Date(), 'yyyy-MM-dd'),
