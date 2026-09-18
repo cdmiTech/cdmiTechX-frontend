@@ -43,6 +43,7 @@ const Students = () => {
         password: '',
         batchTime: '',
         contact: '',
+        parentContact: '',
         courseId: '',
         allowedLanguageIds: []
         // facultyId is NOT in initialFormState intentionally (only shown in edit modal)
@@ -133,14 +134,20 @@ const Students = () => {
                 if (!dataToSend.password) delete dataToSend.password;
 
                 await api.put(`/students/${currentStudent._id}`, dataToSend);
+                toast.success('Student updated successfully');
             } else {
                 await api.post('/students', formData);
+                toast.success('Student created successfully');
             }
-            fetchStudents(filterFacultyId);
+            if (filterName.trim()) {
+                await fetchStudents('');
+            } else {
+                await fetchStudents(filterFacultyId);
+            }
             closeModal();
         } catch (error) {
             console.error('Error saving student:', error);
-            alert(error.response?.data?.message || 'Error occurred');
+            toast.error(error.response?.data?.message || 'Error occurred');
         } finally {
             setLoading(false);
         }
@@ -150,9 +157,15 @@ const Students = () => {
         if (window.confirm('Are you sure you want to delete this student?')) {
             try {
                 await api.delete(`/students/${student._id}`);
-                fetchStudents(filterFacultyId);
+                toast.success('Student deleted successfully');
+                if (filterName.trim()) {
+                    await fetchStudents('');
+                } else {
+                    await fetchStudents(filterFacultyId);
+                }
             } catch (error) {
                 console.error('Error deleting student:', error);
+                toast.error(error.response?.data?.message || 'Error deleting student');
             }
         }
     };
@@ -161,13 +174,14 @@ const Students = () => {
         if (student) {
             setCurrentStudent(student);
             setFormData({
-                name: student.name,
-                email: student.email,
+                name: student.name || '',
+                email: student.email || '',
                 password: '', // Look blank on edit
-                batchTime: student.batchTime,
-                contact: student.contact,
-                courseId: student.courseId?._id || student.courseId,
-                allowedLanguageIds: student.allowedLanguageIds.map(l => l._id || l),
+                batchTime: student.batchTime || '',
+                contact: student.contact || '',
+                parentContact: student.parentContact || '',
+                courseId: student.courseId?._id || student.courseId || '',
+                allowedLanguageIds: (student.allowedLanguageIds || []).map(l => l._id || l),
                 facultyId: student.facultyId?._id || student.facultyId || ''
             });
         } else {
@@ -392,27 +406,27 @@ const Students = () => {
                             onChange={handleChange}
                         />
                     </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Batch Time</label>
+                        <select
+                            name="batchTime"
+                            required
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                            value={formData.batchTime}
+                            onChange={handleChange}
+                        >
+                            <option value="">Select Batch Time</option>
+                            <option value="8 to 10">8 to 10</option>
+                            <option value="10 to 12">10 to 12</option>
+                            <option value="12 to 2">12 to 2</option>
+                            <option value="2 to 4">2 to 4</option>
+                            <option value="4 to 6">4 to 6</option>
+                            <option value="6 to 8">6 to 8</option>
+                        </select>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Batch Time</label>
-                            <select
-                                name="batchTime"
-                                required
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                                value={formData.batchTime}
-                                onChange={handleChange}
-                            >
-                                <option value="">Select Batch Time</option>
-                                <option value="8 to 10">8 to 10</option>
-                                <option value="10 to 12">10 to 12</option>
-                                <option value="12 to 2">12 to 2</option>
-                                <option value="2 to 4">2 to 4</option>
-                                <option value="4 to 6">4 to 6</option>
-                                <option value="6 to 8">6 to 8</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Contact</label>
+                            <label className="block text-sm font-medium text-gray-700">Student Contact</label>
                             <input
                                 type="text"
                                 name="contact"
@@ -420,8 +434,24 @@ const Students = () => {
                                 maxLength="10"
                                 title="Please enter a valid 10-digit contact number."
                                 required
+                                placeholder="10-digit number"
                                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                                 value={formData.contact}
+                                onChange={handleChange}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Parent Contact</label>
+                            <input
+                                type="text"
+                                name="parentContact"
+                                pattern="\d{10}"
+                                maxLength="10"
+                                title="Please enter a valid 10-digit parent contact number."
+                                required
+                                placeholder="10-digit number"
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                                value={formData.parentContact}
                                 onChange={handleChange}
                             />
                         </div>

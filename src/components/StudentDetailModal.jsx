@@ -618,6 +618,10 @@ const StudentDetailModal = ({ student, onClose }) => {
                             <p className="text-indigo-100 text-sm font-medium flex items-center gap-2 mt-0.5">
                                 {student?.batchTime} Batch • {student?.courseId?.name}
                             </p>
+                            <div className="text-indigo-200 text-xs flex flex-wrap gap-x-3 gap-y-1 mt-1 font-medium">
+                                {student?.contact && <span>Student: <strong className="text-white">{student.contact}</strong></span>}
+                                {student?.parentContact && <span>Parent: <strong className="text-white">{student.parentContact}</strong></span>}
+                            </div>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-colors">

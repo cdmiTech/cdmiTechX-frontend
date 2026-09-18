@@ -74,8 +74,19 @@ const Profile = () => {
                                 <Phone className="w-6 h-6" />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Contact Number</p>
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Student Contact Number</p>
                                 <p className="text-gray-900 font-semibold text-base truncate">{profile.contact || 'Not Provided'}</p>
+                            </div>
+                        </div>
+
+                        {/* Parent Contact Details Item */}
+                        <div className="flex items-start bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                            <div className="p-3 bg-pink-50 text-pink-600 rounded-xl mr-4 shrink-0">
+                                <Phone className="w-6 h-6" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Parent Contact Number</p>
+                                <p className="text-gray-900 font-semibold text-base truncate">{profile.parentContact || 'Not Provided'}</p>
                             </div>
                         </div>
 
