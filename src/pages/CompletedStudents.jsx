@@ -3,7 +3,7 @@ import api from '../utils/api';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import Pagination from '../components/Pagination';
-import { Eye, Briefcase, List, CheckCircle2, Trophy } from 'lucide-react';
+import { Eye, Briefcase, List, CheckCircle2, Trophy, RotateCcw } from 'lucide-react';
 import StudentDetailModal from '../components/StudentDetailModal';
 import { toast } from 'react-toastify';
 
@@ -130,6 +130,19 @@ const CompletedStudents = () => {
         }
     };
 
+    const handleRevertRunning = async (student) => {
+        if (window.confirm(`Are you sure you want to revert ${student.name} back to Running Students?`)) {
+            try {
+                await api.put(`/students/${student._id}/revert-running`);
+                toast.success(`${student.name} reverted back to Running students!`);
+                fetchCompletedStudents(filterFacultyId);
+            } catch (error) {
+                console.error('Error reverting student to running:', error);
+                toast.error(error.response?.data?.message || 'Error reverting student');
+            }
+        }
+    };
+
     const columns = [
         { header: 'Name', accessor: 'name' },
         { header: 'Email', accessor: 'email' },
@@ -175,6 +188,13 @@ const CompletedStudents = () => {
                         className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-md transition-colors"
                     >
                         <Eye className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); handleRevertRunning(row); }}
+                        title="Revert to Running Student"
+                        className="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-md transition-colors flex items-center"
+                    >
+                        <RotateCcw className="w-4 h-4" />
                     </button>
                     {!row.jobDone ? (
                         <button
