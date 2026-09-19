@@ -189,21 +189,23 @@ const CompletedStudents = () => {
                     >
                         <Eye className="w-4 h-4" />
                     </button>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); handleRevertRunning(row); }}
-                        title="Revert to Running Student"
-                        className="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-md transition-colors flex items-center"
-                    >
-                        <RotateCcw className="w-4 h-4" />
-                    </button>
                     {!row.jobDone ? (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); handleJobDone(row); }}
-                            title="Mark Job Done & Disable Portal"
-                            className="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-md transition-colors"
-                        >
-                            <Trophy className="w-4 h-4" />
-                        </button>
+                        <>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); handleRevertRunning(row); }}
+                                title="Revert to Running Student"
+                                className="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-md transition-colors flex items-center"
+                            >
+                                <RotateCcw className="w-4 h-4" />
+                            </button>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); handleJobDone(row); }}
+                                title="Mark Job Done & Disable Portal"
+                                className="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-md transition-colors"
+                            >
+                                <Trophy className="w-4 h-4" />
+                            </button>
+                        </>
                     ) : (
                         <span className="p-1.5 text-gray-400" title="Account Deactivated">
                             <CheckCircle2 className="w-4 h-4" />
