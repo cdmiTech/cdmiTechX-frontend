@@ -45,7 +45,8 @@ const Students = () => {
         contact: '',
         parentContact: '',
         courseId: '',
-        allowedLanguageIds: []
+        allowedLanguageIds: [],
+        panel: 'live'
         // facultyId is NOT in initialFormState intentionally (only shown in edit modal)
     };
 
@@ -182,7 +183,8 @@ const Students = () => {
                 parentContact: student.parentContact || '',
                 courseId: student.courseId?._id || student.courseId || '',
                 allowedLanguageIds: (student.allowedLanguageIds || []).map(l => l._id || l),
-                facultyId: student.facultyId?._id || student.facultyId || ''
+                facultyId: student.facultyId?._id || student.facultyId || '',
+                panel: student.panel || 'live'
             });
         } else {
             setCurrentStudent(null);
@@ -251,6 +253,24 @@ const Students = () => {
         }
     };
 
+    const handlePanelToggle = async (student, isChecked) => {
+        const newPanel = isChecked ? 'local' : 'live';
+        try {
+            // Optimistic UI update
+            setStudents(prev => prev.map(s => s._id === student._id ? { ...s, panel: newPanel } : s));
+            await api.put(`/students/${student._id}`, { panel: newPanel });
+            toast.success(`${student.name}'s panel updated to ${newPanel}`);
+        } catch (error) {
+            console.error('Error updating panel:', error);
+            toast.error(error.response?.data?.message || 'Error updating panel');
+            if (filterName.trim()) {
+                await fetchStudents('');
+            } else {
+                await fetchStudents(filterFacultyId);
+            }
+        }
+    };
+
     const columns = [
         { header: 'Name', accessor: 'name' },
         { header: 'Email', accessor: 'email' },
@@ -265,6 +285,29 @@ const Students = () => {
         },
         { header: 'Batch Time', accessor: 'batchTime' },
         { header: 'Course', render: (row) => row.courseId?.name || '-' },
+        {
+            header: 'Panel',
+            render: (row) => (
+                <label
+                    className="inline-flex items-center gap-2 cursor-pointer select-none"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <input
+                        type="checkbox"
+                        checked={row.panel === 'local'}
+                        onChange={(e) => handlePanelToggle(row, e.target.checked)}
+                        className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                    />
+                    <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
+                        row.panel === 'local'
+                            ? 'bg-purple-100 text-purple-800'
+                            : 'bg-sky-100 text-sky-800'
+                    }`}>
+                        {row.panel === 'local' ? 'Local' : 'Live'}
+                    </span>
+                </label>
+            )
+        },
         {
             header: 'Allowed Languages',
             render: (row) => (
