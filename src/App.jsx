@@ -25,6 +25,8 @@ import FacultyReport from './pages/FacultyReport';
 import CompletedStudents from './pages/CompletedStudents';
 import CPCSelection from './pages/CPCSelection';
 import CPCTable from './pages/CPCTable';
+import FacultyAnnouncements from './pages/FacultyAnnouncements';
+import StudentAnnouncements from './pages/StudentAnnouncements';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ToastContainer } from 'react-toastify';
@@ -64,6 +66,7 @@ function App() {
                 <Route path="/workbooks" element={<ViewWorkbooks />} />
                 <Route path="/submissions" element={<Submissions />} />
                 <Route path="/materials" element={<Materials />} />
+                <Route path="/faculty-announcements" element={<FacultyAnnouncements />} />
                 <Route path="/faculty-management" element={<FacultyManagement />} />
                 <Route path="/reports" element={<FacultyReport />} />
               </Route>
@@ -74,6 +77,7 @@ function App() {
 
               {/* Student Routes */}
               <Route element={<ProtectedRoute allowedRoles={['student']} />}>
+                <Route path="/announcements" element={<StudentAnnouncements />} />
                 <Route path="/my-workbook" element={<MyWorkbook />} />
                 <Route path="/my-materials" element={<StudentMaterials />} />
                 <Route path="/profile" element={<Profile />} />

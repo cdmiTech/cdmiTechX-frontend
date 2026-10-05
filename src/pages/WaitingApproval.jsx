@@ -10,7 +10,7 @@ const WaitingApproval = () => {
     useEffect(() => {
         // If already approved (e.g. user navigates here manually), redirect away
         if (user && user.status === 'Approved') {
-            navigate('/my-workbook');
+            navigate('/announcements');
             return;
         }
 
@@ -18,7 +18,7 @@ const WaitingApproval = () => {
         const interval = setInterval(async () => {
             const data = await refreshUserStatus();
             if (data && data.status === 'Approved') {
-                navigate('/my-workbook');
+                navigate('/announcements');
             }
         }, 5000);
 

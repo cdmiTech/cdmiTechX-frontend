@@ -16,11 +16,13 @@ import {
     Library,
     Files,
     X,
-    Award
+    Award,
+    Megaphone
 } from 'lucide-react';
 
 const facultyLinks = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/faculty-announcements', label: 'Announcements', icon: Megaphone },
     { path: '/faculty-management', label: 'Faculty', icon: Shield },
     { path: '/courses', label: 'Courses', icon: BookOpen },
     { path: '/languages', label: 'Languages', icon: Languages },
@@ -35,6 +37,7 @@ const facultyLinks = [
 ];
 
 const studentLinks = [
+    { path: '/announcements', label: 'Announcements', icon: Megaphone },
     { path: '/my-workbook', label: 'My Workbook', icon: BookOpen },
     { path: '/my-materials', label: 'Materials', icon: Files },
     { path: '/report', label: 'Report', icon: FileText },
@@ -45,6 +48,7 @@ const studentLinks = [
 
 const adminLinks = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/faculty-announcements', label: 'Announcements', icon: Megaphone },
     { path: '/faculty-management', label: 'Faculty Management', icon: Shield },
     { path: '/students', label: 'All Students', icon: Users }, // To assign faculty
     { path: '/submissions', label: 'Submissions', icon: Upload },
@@ -69,7 +73,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     } else {
         if (user.courseCompleted) {
             links = studentLinks.filter(link =>
-                ['Materials', 'CPC', 'My Profile'].includes(link.label)
+                ['Announcements', 'Materials', 'CPC', 'My Profile'].includes(link.label)
             );
         } else {
             links = studentLinks;

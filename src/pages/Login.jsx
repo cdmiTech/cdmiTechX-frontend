@@ -52,7 +52,7 @@ const Login = () => {
             }
 
             toast.success('Login successful!');
-            navigate(data.role === 'faculty' ? '/dashboard' : '/my-workbook');
+            navigate(data.role === 'faculty' ? '/dashboard' : '/announcements');
         } catch (err) {
             const errorMessage = err.response?.data?.message || 'Login failed';
             setError(errorMessage);
@@ -148,7 +148,7 @@ const Login = () => {
                 navigate('/waiting-approval');
             } else {
                 toast.success('Login successful!');
-                navigate(data.role === 'faculty' ? '/dashboard' : '/my-workbook');
+                navigate(data.role === 'faculty' ? '/dashboard' : '/announcements');
             }
         } catch (err) {
             console.error('Google Login Error:', err);
