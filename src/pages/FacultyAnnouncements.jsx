@@ -49,6 +49,7 @@ const FacultyAnnouncements = () => {
         description: '',
         link: '',
         linkButtonText: 'Learn More',
+        hasExpiry: false,
         endDate: '',
         isActive: true
     });
@@ -96,7 +97,6 @@ const FacultyAnnouncements = () => {
     };
 
     const openCreateModal = () => {
-        // Default end date to 7 days from now formatted for datetime-local
         const d = new Date();
         d.setDate(d.getDate() + 7);
         d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
@@ -107,6 +107,7 @@ const FacultyAnnouncements = () => {
             description: '',
             link: '',
             linkButtonText: 'Learn More',
+            hasExpiry: false,
             endDate: defaultEndDate,
             isActive: true
         });
@@ -118,15 +119,25 @@ const FacultyAnnouncements = () => {
 
     const openEditModal = (announcement) => {
         setSelectedAnnouncement(announcement);
-        const endD = new Date(announcement.endDate);
-        endD.setMinutes(endD.getMinutes() - endD.getTimezoneOffset());
-        const formattedEndDate = endD.toISOString().slice(0, 16);
+        const hasExp = Boolean(announcement.endDate);
+        let formattedEndDate = '';
+        if (announcement.endDate) {
+            const endD = new Date(announcement.endDate);
+            endD.setMinutes(endD.getMinutes() - endD.getTimezoneOffset());
+            formattedEndDate = endD.toISOString().slice(0, 16);
+        } else {
+            const d = new Date();
+            d.setDate(d.getDate() + 7);
+            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+            formattedEndDate = d.toISOString().slice(0, 16);
+        }
 
         setFormData({
             title: announcement.title || '',
             description: announcement.description || '',
             link: announcement.link || '',
             linkButtonText: announcement.linkButtonText || 'Learn More',
+            hasExpiry: hasExp,
             endDate: formattedEndDate,
             isActive: announcement.isActive !== undefined ? announcement.isActive : true
         });
@@ -152,8 +163,8 @@ const FacultyAnnouncements = () => {
         if (!formData.title.trim()) {
             return toast.error('Please enter a title');
         }
-        if (!formData.endDate) {
-            return toast.error('Please specify an end date');
+        if (formData.hasExpiry && !formData.endDate) {
+            return toast.error('Please specify an expiration date');
         }
 
         try {
@@ -163,16 +174,18 @@ const FacultyAnnouncements = () => {
             submitData.append('description', formData.description.trim());
             submitData.append('link', formData.link.trim());
             submitData.append('linkButtonText', formData.linkButtonText.trim() || 'Learn More');
-            submitData.append('endDate', new Date(formData.endDate).toISOString());
+            if (formData.hasExpiry && formData.endDate) {
+                submitData.append('endDate', new Date(formData.endDate).toISOString());
+            } else {
+                submitData.append('endDate', '');
+            }
             submitData.append('isActive', formData.isActive);
 
             selectedFiles.forEach((file) => {
                 submitData.append('images', file);
             });
 
-            const { data } = await api.post('/announcements', submitData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            await api.post('/announcements', submitData);
 
             toast.success('Announcement published successfully!');
             setIsCreateModalOpen(false);
@@ -190,8 +203,8 @@ const FacultyAnnouncements = () => {
         if (!formData.title.trim()) {
             return toast.error('Please enter a title');
         }
-        if (!formData.endDate) {
-            return toast.error('Please specify an end date');
+        if (formData.hasExpiry && !formData.endDate) {
+            return toast.error('Please specify an expiration date');
         }
 
         try {
@@ -201,7 +214,11 @@ const FacultyAnnouncements = () => {
             submitData.append('description', formData.description.trim());
             submitData.append('link', formData.link.trim());
             submitData.append('linkButtonText', formData.linkButtonText.trim() || 'Learn More');
-            submitData.append('endDate', new Date(formData.endDate).toISOString());
+            if (formData.hasExpiry && formData.endDate) {
+                submitData.append('endDate', new Date(formData.endDate).toISOString());
+            } else {
+                submitData.append('endDate', '');
+            }
             submitData.append('isActive', formData.isActive);
             submitData.append('existingImages', JSON.stringify(existingImages));
 
@@ -209,9 +226,7 @@ const FacultyAnnouncements = () => {
                 submitData.append('images', file);
             });
 
-            await api.put(`/announcements/${selectedAnnouncement._id}`, submitData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            await api.put(`/announcements/${selectedAnnouncement._id}`, submitData);
 
             toast.success('Announcement updated successfully!');
             setIsEditModalOpen(false);
@@ -242,7 +257,10 @@ const FacultyAnnouncements = () => {
 
     // Filter calculations
     const now = new Date();
-    const isExpired = (endDate) => new Date(endDate) < now;
+    const isExpired = (endDate) => {
+        if (!endDate) return false;
+        return new Date(endDate) < now;
+    };
 
     const filteredAnnouncements = announcements.filter(item => {
         const matchesSearch = item.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -474,7 +492,7 @@ const FacultyAnnouncements = () => {
                                         <div className="flex items-center justify-between text-xs text-gray-400">
                                             <div className="flex items-center gap-1.5">
                                                 <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                                                <span>Ends: {new Date(item.endDate).toLocaleDateString()}</span>
+                                                <span>{item.endDate ? `Ends: ${new Date(item.endDate).toLocaleDateString()}` : 'No Expiry'}</span>
                                             </div>
                                             <span className="font-medium text-gray-500">
                                                 {new Date(item.createdAt).toLocaleDateString()}
@@ -624,34 +642,64 @@ const FacultyAnnouncements = () => {
                         </div>
                     </div>
 
-                    {/* End Date & Status */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                                Expiration / End Date <span className="text-rose-500">*</span>
-                            </label>
-                            <input
-                                type="datetime-local"
-                                required
-                                value={formData.endDate}
-                                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                            />
-                        </div>
+                    {/* Expiry Date Checkbox & Status */}
+                    <div className="space-y-4 pt-1 border-t border-gray-100">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                            {/* Expiry Date Checkbox & Date Picker */}
+                            <div className="space-y-3 bg-gray-50/70 p-4 rounded-2xl border border-gray-200">
+                                <label className="flex items-center gap-3 cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.hasExpiry}
+                                        onChange={(e) => setFormData({ ...formData, hasExpiry: e.target.checked })}
+                                        className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-gray-300 cursor-pointer"
+                                    />
+                                    <div>
+                                        <span className="text-xs font-bold text-gray-800 uppercase tracking-wider block">
+                                            Expiry Date
+                                        </span>
+                                        <span className="text-[11px] text-gray-400 block leading-tight">
+                                            {formData.hasExpiry ? 'Notice will auto-expire after date' : 'Stay permanently (no expiry)'}
+                                        </span>
+                                    </div>
+                                </label>
 
-                        <div className="flex items-center pt-6">
-                            <label className="relative flex items-center gap-3 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={formData.isActive}
-                                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                                    className="sr-only peer"
-                                />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                                <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                                    Publish Immediately (Active)
-                                </span>
-                            </label>
+                                {formData.hasExpiry && (
+                                    <div className="pt-2 border-t border-gray-200 animate-in fade-in duration-200">
+                                        <label className="block text-[11px] font-bold text-gray-600 uppercase tracking-wider mb-1.5">
+                                            Select End Date & Time <span className="text-rose-500">*</span>
+                                        </label>
+                                        <input
+                                            type="datetime-local"
+                                            required={formData.hasExpiry}
+                                            value={formData.endDate}
+                                            onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                                            className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Publish Immediately Switch */}
+                            <div className="bg-gray-50/70 p-4 rounded-2xl border border-gray-200 flex items-center justify-between">
+                                <div>
+                                    <span className="text-xs font-bold text-gray-800 uppercase tracking-wider block">
+                                        Publish Immediately
+                                    </span>
+                                    <span className="text-[11px] text-gray-400 block leading-tight">
+                                        {formData.isActive ? 'Active & visible' : 'Saved as inactive'}
+                                    </span>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.isActive}
+                                        onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </div>
                         </div>
                     </div>
 
@@ -797,34 +845,64 @@ const FacultyAnnouncements = () => {
                         </div>
                     </div>
 
-                    {/* End Date & Status */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                                Expiration / End Date <span className="text-rose-500">*</span>
-                            </label>
-                            <input
-                                type="datetime-local"
-                                required
-                                value={formData.endDate}
-                                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                            />
-                        </div>
+                    {/* Expiry Date Checkbox & Status */}
+                    <div className="space-y-4 pt-1 border-t border-gray-100">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                            {/* Expiry Date Checkbox & Date Picker */}
+                            <div className="space-y-3 bg-gray-50/70 p-4 rounded-2xl border border-gray-200">
+                                <label className="flex items-center gap-3 cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.hasExpiry}
+                                        onChange={(e) => setFormData({ ...formData, hasExpiry: e.target.checked })}
+                                        className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-gray-300 cursor-pointer"
+                                    />
+                                    <div>
+                                        <span className="text-xs font-bold text-gray-800 uppercase tracking-wider block">
+                                            Expiry Date
+                                        </span>
+                                        <span className="text-[11px] text-gray-400 block leading-tight">
+                                            {formData.hasExpiry ? 'Notice will auto-expire after date' : 'Stay permanently (no expiry)'}
+                                        </span>
+                                    </div>
+                                </label>
 
-                        <div className="flex items-center pt-6">
-                            <label className="relative flex items-center gap-3 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={formData.isActive}
-                                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                                    className="sr-only peer"
-                                />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                                <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                                    Active
-                                </span>
-                            </label>
+                                {formData.hasExpiry && (
+                                    <div className="pt-2 border-t border-gray-200 animate-in fade-in duration-200">
+                                        <label className="block text-[11px] font-bold text-gray-600 uppercase tracking-wider mb-1.5">
+                                            Select End Date & Time <span className="text-rose-500">*</span>
+                                        </label>
+                                        <input
+                                            type="datetime-local"
+                                            required={formData.hasExpiry}
+                                            value={formData.endDate}
+                                            onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                                            className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Active Switch */}
+                            <div className="bg-gray-50/70 p-4 rounded-2xl border border-gray-200 flex items-center justify-between">
+                                <div>
+                                    <span className="text-xs font-bold text-gray-800 uppercase tracking-wider block">
+                                        Active Status
+                                    </span>
+                                    <span className="text-[11px] text-gray-400 block leading-tight">
+                                        {formData.isActive ? 'Active & visible' : 'Hidden from students'}
+                                    </span>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.isActive}
+                                        onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </div>
                         </div>
                     </div>
 
@@ -870,7 +948,9 @@ const FacultyAnnouncements = () => {
                             <div className="flex items-center gap-4 text-xs text-gray-500">
                                 <span className="flex items-center gap-1.5">
                                     <Clock className="w-4 h-4 text-indigo-500" />
-                                    Valid until: {new Date(selectedAnnouncement.endDate).toLocaleString()}
+                                    {selectedAnnouncement.endDate
+                                        ? `Valid until: ${new Date(selectedAnnouncement.endDate).toLocaleString()}`
+                                        : 'Permanent Notice (No Expiry)'}
                                 </span>
                                 <span>Published: {new Date(selectedAnnouncement.createdAt).toLocaleDateString()}</span>
                             </div>

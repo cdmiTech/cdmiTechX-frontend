@@ -49,7 +49,13 @@ const FacultySuccessStudents = () => {
         try {
             setLoading(true);
             const { data } = await api.get('/success-students');
-            setSuccessStudents(data || []);
+            const sortedData = (data || []).sort((a, b) => {
+                const dateA = new Date(a.createdAt || 0).getTime();
+                const dateB = new Date(b.createdAt || 0).getTime();
+                if (dateB !== dateA) return dateB - dateA;
+                return String(b._id).localeCompare(String(a._id));
+            });
+            setSuccessStudents(sortedData);
         } catch (error) {
             console.error('Failed to fetch success students:', error);
             toast.error(error.response?.data?.message || 'Failed to load success students');
@@ -181,12 +187,19 @@ const FacultySuccessStudents = () => {
         }
     };
 
-    // Filter logic
-    const filteredList = successStudents.filter(item => {
-        if (filterStatus === 'active') return item.isActive;
-        if (filterStatus === 'inactive') return !item.isActive;
-        return true;
-    });
+    // Filter logic: strictly descending order (newest first)
+    const filteredList = successStudents
+        .filter(item => {
+            if (filterStatus === 'active') return item.isActive;
+            if (filterStatus === 'inactive') return !item.isActive;
+            return true;
+        })
+        .sort((a, b) => {
+            const dateA = new Date(a.createdAt || 0).getTime();
+            const dateB = new Date(b.createdAt || 0).getTime();
+            if (dateB !== dateA) return dateB - dateA;
+            return String(b._id).localeCompare(String(a._id));
+        });
 
     const activeCount = successStudents.filter(s => s.isActive).length;
     const inactiveCount = successStudents.length - activeCount;

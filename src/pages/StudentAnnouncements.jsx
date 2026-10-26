@@ -54,7 +54,14 @@ const StudentAnnouncements = () => {
     const fetchSuccessStudents = async () => {
         try {
             const { data } = await api.get('/success-students?onlyActive=true');
-            setSuccessStudents(data || []);
+            // Strictly descending order: newest uploads appear first in slider
+            const sorted = (data || []).sort((a, b) => {
+                const dateA = new Date(a.createdAt || 0).getTime();
+                const dateB = new Date(b.createdAt || 0).getTime();
+                if (dateB !== dateA) return dateB - dateA;
+                return String(b._id).localeCompare(String(a._id));
+            });
+            setSuccessStudents(sorted);
         } catch (error) {
             console.error('Failed to fetch success students:', error);
         }
@@ -132,7 +139,10 @@ const StudentAnnouncements = () => {
     };
 
     const now = new Date();
-    const isExpired = (endDate) => new Date(endDate) < now;
+    const isExpired = (endDate) => {
+        if (!endDate) return false;
+        return new Date(endDate) < now;
+    };
 
     const openDetailModal = (announcement) => {
         setSelectedAnnouncement(announcement);
@@ -153,6 +163,7 @@ const StudentAnnouncements = () => {
     );
 
     const getDaysRemaining = (endDate) => {
+        if (!endDate) return null;
         const diff = new Date(endDate) - new Date();
         const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
         if (days <= 0) return 'Ends today';
@@ -379,10 +390,12 @@ const StudentAnnouncements = () => {
                                             <span className="px-3 py-1 bg-emerald-500 text-white text-xs font-bold rounded-full shadow-md backdrop-blur-md uppercase tracking-wider">
                                                 Active
                                             </span>
-                                            <span className="px-3 py-1 bg-black/60 text-white text-xs font-semibold rounded-full backdrop-blur-md flex items-center gap-1">
-                                                <Clock className="w-3 h-3 text-amber-300" />
-                                                {remainingTag}
-                                            </span>
+                                            {remainingTag && (
+                                                <span className="px-3 py-1 bg-black/60 text-white text-xs font-semibold rounded-full backdrop-blur-md flex items-center gap-1">
+                                                    <Clock className="w-3 h-3 text-amber-300" />
+                                                    {remainingTag}
+                                                </span>
+                                            )}
                                         </div>
 
                                         {announcement.images.length > 1 && (
@@ -401,10 +414,12 @@ const StudentAnnouncements = () => {
                                             <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full uppercase tracking-wider">
                                                 Active
                                             </span>
-                                            <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-full flex items-center gap-1">
-                                                <Clock className="w-3 h-3" />
-                                                {remainingTag}
-                                            </span>
+                                            {remainingTag && (
+                                                <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-full flex items-center gap-1">
+                                                    <Clock className="w-3 h-3" />
+                                                    {remainingTag}
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="w-10 h-10 rounded-xl bg-indigo-100/50 flex items-center justify-center text-indigo-600">
                                             <Megaphone className="w-5 h-5" />
@@ -445,10 +460,14 @@ const StudentAnnouncements = () => {
 
                                     {/* Footer Info */}
                                     <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-                                        <div className="flex items-center gap-1.5">
-                                            <Calendar className="w-3.5 h-3.5" />
-                                            <span>Valid till: {new Date(announcement.endDate).toLocaleDateString()}</span>
-                                        </div>
+                                        {announcement.endDate ? (
+                                            <div className="flex items-center gap-1.5">
+                                                <Calendar className="w-3.5 h-3.5" />
+                                                <span>Valid till: {new Date(announcement.endDate).toLocaleDateString()}</span>
+                                            </div>
+                                        ) : (
+                                            <div />
+                                        )}
 
                                         <button
                                             onClick={() => openDetailModal(announcement)}
@@ -584,31 +603,26 @@ const StudentAnnouncements = () => {
                 <Modal
                     isOpen={isDetailModalOpen}
                     onClose={() => setIsDetailModalOpen(false)}
-                    title="Announcement Details"
+                    title={
+                        <div className="flex flex-wrap items-baseline gap-2.5">
+                            <span className="text-xl font-bold text-gray-900">Announcement Details</span>
+                            {selectedAnnouncement.createdAt && (
+                                <span className="text-xs font-normal text-gray-500">
+                                    • Posted on: {new Date(selectedAnnouncement.createdAt).toLocaleDateString(undefined, {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                    })} at {new Date(selectedAnnouncement.createdAt).toLocaleTimeString(undefined, {
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    })}
+                                </span>
+                            )}
+                        </div>
+                    }
                     maxWidth="max-w-3xl"
                 >
                     <div className="space-y-6">
-                        {/* Top Meta & Badges */}
-                        <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-gray-100">
-                            <div className="flex items-center gap-2">
-                                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${isExpired(selectedAnnouncement.endDate) || !selectedAnnouncement.isActive
-                                    ? 'bg-rose-100 text-rose-700'
-                                    : 'bg-emerald-100 text-emerald-700'
-                                    }`}>
-                                    {isExpired(selectedAnnouncement.endDate) ? 'Expired' : selectedAnnouncement.isActive ? 'Active Notice' : 'Inactive'}
-                                </span>
-                            </div>
-
-                            <div className="flex items-center gap-3 text-xs text-gray-500">
-                                <span className="flex items-center gap-1">
-                                    <Clock className="w-3.5 h-3.5 text-indigo-500" />
-                                    Valid until: {new Date(selectedAnnouncement.endDate).toLocaleString(undefined, {
-                                        dateStyle: 'medium',
-                                        timeStyle: 'short'
-                                    })}
-                                </span>
-                            </div>
-                        </div>
 
                         {/* Complete Announcement Title */}
                         <h2 className="text-2xl sm:text-3xl font-black text-gray-900 leading-snug">
@@ -696,13 +710,21 @@ const StudentAnnouncements = () => {
 
                         {/* Footer Information */}
                         <div className="pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between text-xs text-gray-400 gap-2">
-                            <span>Posted on: {new Date(selectedAnnouncement.createdAt).toLocaleDateString(undefined, {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            })}</span>
+                            {selectedAnnouncement.endDate ? (
+                                <span className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
+                                    <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                                    Valid till: {new Date(selectedAnnouncement.endDate).toLocaleDateString(undefined, {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                    })} at {new Date(selectedAnnouncement.endDate).toLocaleTimeString(undefined, {
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    })}
+                                </span>
+                            ) : (
+                                <div />
+                            )}
 
                             <button
                                 type="button"
