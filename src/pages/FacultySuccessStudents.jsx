@@ -10,6 +10,7 @@ import {
     Trash2,
     Eye,
     CheckCircle2,
+    Check,
     AlertCircle,
     X,
     Filter,
@@ -509,23 +510,28 @@ const FacultySuccessStudents = () => {
                                             </div>
 
                                             <div className="flex items-center gap-2">
-                                                {/* Switch button */}
+                                                {/* Custom Toggle Switch matching Image 1 */}
                                                 <button
                                                     type="button"
                                                     disabled={isToggling}
                                                     onClick={() => handleToggleStatus(item)}
-                                                    className={`relative inline-flex h-7 w-13 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${item.isActive ? 'bg-emerald-500' : 'bg-gray-300'
+                                                    className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none shadow-inner ${item.isActive ? 'bg-emerald-500' : 'bg-gray-300'
                                                         } ${isToggling ? 'opacity-50 cursor-wait' : ''}`}
                                                     role="switch"
                                                     aria-checked={item.isActive}
-                                                    title={item.isActive ? 'Click to toggle OFF (Hide from students)' : 'Click to toggle ON (Show to students)'}
+                                                    title={item.isActive ? 'Click to turn OFF (Hide from students)' : 'Click to turn ON (Show to students)'}
                                                 >
                                                     <span className="sr-only">Toggle visibility</span>
                                                     <span
-                                                        aria-hidden="true"
-                                                        className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${item.isActive ? 'translate-x-6' : 'translate-x-0'
+                                                        className={`pointer-events-none inline-flex h-6 w-6 items-center justify-center transform rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out ${item.isActive ? 'translate-x-7' : 'translate-x-0'
                                                             }`}
-                                                    />
+                                                    >
+                                                        {item.isActive ? (
+                                                            <Check className="w-3.5 h-3.5 text-emerald-500 stroke-[3]" />
+                                                        ) : (
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                                                        )}
+                                                    </span>
                                                 </button>
 
                                                 {/* Delete button */}
@@ -564,17 +570,14 @@ const FacultySuccessStudents = () => {
                                     {previewItem.isActive ? 'Visible in Student Panel' : 'Hidden from Student Panel'}
                                 </span>
                             </span>
-                            <span className="text-gray-400">
-                                Standard Ratio: 858 × 1215
-                            </span>
                         </div>
 
-                        {/* Preserves 858x1215 ratio fully */}
-                        <div className="relative w-full aspect-[858/1215] max-h-[70vh] bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center shadow-inner">
+                        {/* Preserves 858x1215 ratio fully with zero black empty space on left/right */}
+                        <div className="relative mx-auto flex items-center justify-center max-h-[75vh] w-fit rounded-2xl overflow-hidden shadow-xl">
                             <img
                                 src={previewItem.imageUrl}
                                 alt={previewItem.originalName}
-                                className="w-full h-full object-contain"
+                                className="max-h-[75vh] w-auto max-w-full rounded-2xl object-contain block"
                             />
                         </div>
 

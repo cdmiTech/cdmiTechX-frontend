@@ -167,47 +167,14 @@ const StudentAnnouncements = () => {
             {/* ------------------------------------------------------------- */}
             {successStudents.length > 0 && (
                 <div className="space-y-4">
-                    {/* Header bar with controls */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-transparent p-4 sm:p-5 rounded-3xl border border-amber-200/50">
-                        <div className="flex items-center gap-3.5">
-                            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 text-white flex items-center justify-center shadow-lg shadow-amber-500/30 flex-shrink-0">
-                                <Trophy className="w-6 h-6 text-amber-950" />
-                            </div>
-                            <div>
-                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] sm:text-xs font-black uppercase tracking-wider mb-0.5">
-                                    <Sparkles className="w-3 h-3 text-amber-600" />
-                                    <span>Hall of Fame & Achievements</span>
-                                </div>
-                                <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-                                    Success Students
-                                </h2>
-                            </div>
+                    {/* Recent Placed Students Header: Only icon and simple text */}
+                    <div className="flex items-center gap-3 pt-1">
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 text-white flex items-center justify-center shadow-md shadow-amber-500/25 flex-shrink-0">
+                            <Trophy className="w-5 h-5 text-amber-950" />
                         </div>
-
-                        {/* Slider Nav Buttons & Counter (when total > itemsPerPage) */}
-                        {successStudents.length > itemsPerPage && (
-                            <div className="flex items-center gap-2 self-end sm:self-auto">
-                                <span className="text-xs font-bold text-gray-500 bg-white/80 px-3 py-1 rounded-full border border-gray-200 shadow-sm">
-                                    {((currentSlideIndex % successStudents.length) + 1)} / {successStudents.length}
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={prevSuccessSlide}
-                                    className="p-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300 transition-all shadow-sm active:scale-95"
-                                    title="Previous Poster"
-                                >
-                                    <ChevronLeft className="w-4 h-4" />
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={nextSuccessSlide}
-                                    className="p-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300 transition-all shadow-sm active:scale-95"
-                                    title="Next Poster"
-                                >
-                                    <ChevronRight className="w-4 h-4" />
-                                </button>
-                            </div>
-                        )}
+                        <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+                            Recent Placed Students
+                        </h2>
                     </div>
 
                     {/* Auto Slider Viewport */}
@@ -324,69 +291,30 @@ const StudentAnnouncements = () => {
                 </div>
             )}
 
-            {/* Top Announcement Banner / Header */}
-            <div className="relative overflow-hidden bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-950 rounded-3xl p-6 md:p-10 text-white shadow-xl shadow-indigo-950/20">
-                {/* Background decorative glow */}
-                <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute left-1/3 bottom-0 w-60 h-60 bg-purple-500/15 rounded-full blur-3xl pointer-events-none" />
-
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="space-y-3 max-w-2xl">
-                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-indigo-500/20 border border-indigo-400/30 rounded-full text-xs font-semibold text-indigo-200">
-                            <Sparkles className="w-3.5 h-3.5 text-indigo-300 animate-pulse" />
-                            <span>Campus Notices & Circulars</span>
-                        </div>
-                        <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white flex items-center gap-3">
-                            <Megaphone className="w-8 h-8 md:w-10 md:h-10 text-indigo-300" />
-                            Notice Board
-                        </h1>
-                        <p className="text-indigo-200/90 text-sm md:text-base leading-relaxed">
-                            Stay up-to-date with the latest academic announcements, test schedules, workshop invitations, and official circulars.
-                        </p>
+            {/* Active Notices Section Header Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 pb-1">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-600/25 flex-shrink-0">
+                        <Megaphone className="w-5 h-5 text-white" />
                     </div>
-
-                    {/* "All Announcements" Option Button */}
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                        <button
-                            onClick={() => {
-                                setModalSearchTerm('');
-                                setIsAllAnnouncementsModalOpen(true);
-                            }}
-                            className="group flex items-center justify-center gap-3 px-6 py-4 bg-white text-indigo-950 font-black rounded-2xl shadow-xl hover:bg-indigo-50 transition-all duration-200 active:scale-95 border border-white/20 hover:shadow-indigo-500/30"
-                        >
-                            <ListOrdered className="w-5 h-5 text-indigo-600 group-hover:scale-110 transition-transform" />
-                            <div className="text-left">
-                                <div className="text-xs uppercase tracking-wider text-indigo-600 font-extrabold">Notice Archive</div>
-                                <div className="text-sm font-black flex items-center gap-2">
-                                    All Announcements
-                                    <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-xs rounded-full font-bold">
-                                        {announcements.length}
-                                    </span>
-                                </div>
-                            </div>
-                        </button>
-                    </div>
+                    <h3 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+                        Active Notices
+                    </h3>
                 </div>
 
-                {/* Sub-ticker if there is an active notice */}
-                {activeAnnouncements.length > 0 && (
-                    <div className="mt-6 pt-5 border-t border-indigo-700/50 flex flex-wrap items-center justify-between gap-3 text-xs text-indigo-200">
-                        <div className="flex items-center gap-2">
-                            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                            <span className="font-semibold text-emerald-300">Live Notice:</span>
-                            <span className="truncate max-w-md text-white font-medium">
-                                {activeAnnouncements[0].title}
-                            </span>
-                        </div>
-                        <button
-                            onClick={() => openDetailModal(activeAnnouncements[0])}
-                            className="text-white hover:text-indigo-300 font-bold underline underline-offset-4 flex items-center gap-1 transition-colors"
-                        >
-                            View Latest Notice
-                            <ChevronRight className="w-3.5 h-3.5" />
-                        </button>
-                    </div>
-                )}
+                {/* All Announcements Button */}
+                <button
+                    onClick={() => {
+                        setModalSearchTerm('');
+                        setIsAllAnnouncementsModalOpen(true);
+                    }}
+                    className="flex items-center justify-center gap-2.5 px-4 py-2.5 bg-white text-indigo-950 font-bold rounded-2xl shadow-sm hover:shadow-md hover:bg-indigo-50/80 transition-all duration-200 active:scale-95 border border-gray-200 self-start sm:self-auto text-sm"
+                >
+                    <span>All Announcements</span>
+                    <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-xs rounded-full font-bold">
+                        {announcements.length}
+                    </span>
+                </button>
             </div>
 
             {/* Active Announcements Display */}
@@ -690,11 +618,11 @@ const StudentAnnouncements = () => {
                         {/* Image Showcase / Lightbox Slider */}
                         {selectedAnnouncement.images && selectedAnnouncement.images.length > 0 && (
                             <div className="space-y-3">
-                                <div className="relative rounded-2xl overflow-hidden bg-gray-950 h-72 sm:h-96 flex items-center justify-center shadow-inner">
+                                <div className="relative mx-auto flex items-center justify-center max-h-[75vh] w-fit rounded-2xl overflow-hidden shadow-lg border border-gray-100">
                                     <img
                                         src={selectedAnnouncement.images[activeImageIndex]?.url}
                                         alt={selectedAnnouncement.title}
-                                        className="w-full h-full object-contain"
+                                        className="max-h-[75vh] w-auto max-w-full rounded-2xl object-contain block"
                                     />
 
                                     {selectedAnnouncement.images.length > 1 && (
@@ -799,24 +727,12 @@ const StudentAnnouncements = () => {
                     maxWidth="max-w-2xl"
                 >
                     <div className="space-y-4">
-                        <div className="flex items-center justify-between pb-3 border-b border-gray-100 text-xs">
-                            <span className="flex items-center gap-1.5 font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-                                <Trophy className="w-3.5 h-3.5 text-amber-600" />
-                                Star Placement / Achiever
-                            </span>
-                            {successStudents.length > 1 && (
-                                <span className="text-gray-400 font-semibold">
-                                    Poster {previewPosterIndex + 1} of {successStudents.length}
-                                </span>
-                            )}
-                        </div>
-
-                        {/* Full poster preserving 858x1215 ratio without any clipping */}
-                        <div className="relative w-full aspect-[858/1215] max-h-[75vh] bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center shadow-2xl">
+                        {/* Full poster preserving 858x1215 ratio with zero black empty space on left/right */}
+                        <div className="relative mx-auto flex items-center justify-center max-h-[82vh] w-fit rounded-2xl overflow-hidden shadow-2xl">
                             <img
                                 src={previewSuccessPoster.imageUrl}
                                 alt={previewSuccessPoster.originalName || 'Success Student'}
-                                className="w-full h-full object-contain"
+                                className="max-h-[82vh] w-auto max-w-full rounded-2xl object-contain block"
                             />
 
                             {/* Previous / Next buttons inside lightbox if multiple posters */}
@@ -848,19 +764,6 @@ const StudentAnnouncements = () => {
                                     </button>
                                 </>
                             )}
-                        </div>
-
-                        <div className="flex items-center justify-between pt-2">
-                            <span className="text-xs text-gray-400">
-                                Standard Ratio: 858 × 1215
-                            </span>
-                            <button
-                                type="button"
-                                onClick={() => setPreviewSuccessPoster(null)}
-                                className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs transition-colors"
-                            >
-                                Close
-                            </button>
                         </div>
                     </div>
                 </Modal>

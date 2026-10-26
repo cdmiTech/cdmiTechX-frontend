@@ -884,11 +884,11 @@ const FacultyAnnouncements = () => {
                         {/* Images Gallery */}
                         {selectedAnnouncement.images && selectedAnnouncement.images.length > 0 && (
                             <div className="space-y-3">
-                                <div className="relative rounded-2xl overflow-hidden bg-gray-900 h-72 sm:h-96 flex items-center justify-center">
+                                <div className="relative mx-auto flex items-center justify-center max-h-[75vh] w-fit rounded-2xl overflow-hidden shadow-lg border border-gray-100">
                                     <img
                                         src={selectedAnnouncement.images[selectedImageIndex]?.url}
                                         alt={selectedAnnouncement.title}
-                                        className="w-full h-full object-contain"
+                                        className="max-h-[75vh] w-auto max-w-full rounded-2xl object-contain block"
                                     />
                                     {selectedAnnouncement.images.length > 1 && (
                                         <>
