@@ -102,9 +102,7 @@ const FacultySuccessStudents = () => {
                 formData.append('images', file);
             });
 
-            const { data } = await api.post('/success-students', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            const { data } = await api.post('/success-students', formData);
 
             toast.success(`Successfully uploaded ${Array.isArray(data) ? data.length : 1} image(s)!`);
             clearAllSelected();
