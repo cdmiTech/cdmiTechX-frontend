@@ -26,6 +26,7 @@ import CompletedStudents from './pages/CompletedStudents';
 import CPCSelection from './pages/CPCSelection';
 import CPCTable from './pages/CPCTable';
 import FacultyAnnouncements from './pages/FacultyAnnouncements';
+import FacultySuccessStudents from './pages/FacultySuccessStudents';
 import StudentAnnouncements from './pages/StudentAnnouncements';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -67,6 +68,7 @@ function App() {
                 <Route path="/submissions" element={<Submissions />} />
                 <Route path="/materials" element={<Materials />} />
                 <Route path="/faculty-announcements" element={<FacultyAnnouncements />} />
+                <Route path="/success-students" element={<FacultySuccessStudents />} />
                 <Route path="/faculty-management" element={<FacultyManagement />} />
                 <Route path="/reports" element={<FacultyReport />} />
               </Route>

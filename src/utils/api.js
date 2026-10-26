@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'https://cdmitechx-backend.onrender.com/api',
+    baseURL: import.meta.env.VITE_API_URL || 'https://cdmitechx-backend.onrender.com/api',
 });
 
 // Add a request interceptor to include the token in headers

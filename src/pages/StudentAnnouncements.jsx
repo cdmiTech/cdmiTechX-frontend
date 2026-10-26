@@ -19,12 +19,23 @@ import {
     Tag,
     Layers,
     Share2,
-    Info
+    Info,
+    Trophy,
+    Maximize2
 } from 'lucide-react';
 
 const StudentAnnouncements = () => {
     const [announcements, setAnnouncements] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // Success Students Auto Slider states
+    const [successStudents, setSuccessStudents] = useState([]);
+    const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+    const [isTransitioning, setIsTransitioning] = useState(true);
+    const [isSliderPaused, setIsSliderPaused] = useState(false);
+    const [itemsPerPage, setItemsPerPage] = useState(3);
+    const [previewSuccessPoster, setPreviewSuccessPoster] = useState(null);
+    const [previewPosterIndex, setPreviewPosterIndex] = useState(0);
 
     // Modal states
     const [isAllAnnouncementsModalOpen, setIsAllAnnouncementsModalOpen] = useState(false);
@@ -37,7 +48,76 @@ const StudentAnnouncements = () => {
 
     useEffect(() => {
         fetchAnnouncements();
+        fetchSuccessStudents();
     }, []);
+
+    const fetchSuccessStudents = async () => {
+        try {
+            const { data } = await api.get('/success-students?onlyActive=true');
+            setSuccessStudents(data || []);
+        } catch (error) {
+            console.error('Failed to fetch success students:', error);
+        }
+    };
+
+    // Responsive items per page for auto slider (3 on desktop, 2 on tablet, 1 on mobile)
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 640) {
+                setItemsPerPage(1);
+            } else if (window.innerWidth < 1024) {
+                setItemsPerPage(2);
+            } else {
+                setItemsPerPage(3);
+            }
+        };
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // Auto slider interval effect
+    useEffect(() => {
+        if (isSliderPaused || successStudents.length <= itemsPerPage) return;
+        const interval = setInterval(() => {
+            nextSuccessSlide();
+        }, 3500);
+        return () => clearInterval(interval);
+    }, [isSliderPaused, successStudents.length, itemsPerPage]);
+
+    // Handle seamless infinite sliding reset
+    useEffect(() => {
+        if (!isTransitioning) {
+            const timeout = setTimeout(() => {
+                setIsTransitioning(true);
+            }, 50);
+            return () => clearTimeout(timeout);
+        }
+    }, [isTransitioning]);
+
+    const nextSuccessSlide = () => {
+        if (successStudents.length <= itemsPerPage) return;
+        setIsTransitioning(true);
+        setCurrentSlideIndex(prev => prev + 1);
+    };
+
+    const prevSuccessSlide = () => {
+        if (successStudents.length <= itemsPerPage) return;
+        setIsTransitioning(true);
+        setCurrentSlideIndex(prev => (prev === 0 ? successStudents.length - 1 : prev - 1));
+    };
+
+    const handleSuccessTransitionEnd = () => {
+        if (currentSlideIndex >= successStudents.length) {
+            setIsTransitioning(false);
+            setCurrentSlideIndex(0);
+        }
+    };
+
+    // Extended list for seamless looping carousel
+    const displaySuccessList = successStudents.length > itemsPerPage
+        ? [...successStudents, ...successStudents.slice(0, itemsPerPage)]
+        : successStudents;
 
     const fetchAnnouncements = async () => {
         try {
@@ -82,6 +162,168 @@ const StudentAnnouncements = () => {
 
     return (
         <div className="space-y-8 animate-in fade-in duration-300 pb-16">
+            {/* ------------------------------------------------------------- */}
+            {/* SUCCESS STUDENTS TOP AUTO SLIDER (3 CARDS, 858x1215 RATIO)    */}
+            {/* ------------------------------------------------------------- */}
+            {successStudents.length > 0 && (
+                <div className="space-y-4">
+                    {/* Header bar with controls */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-transparent p-4 sm:p-5 rounded-3xl border border-amber-200/50">
+                        <div className="flex items-center gap-3.5">
+                            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 text-white flex items-center justify-center shadow-lg shadow-amber-500/30 flex-shrink-0">
+                                <Trophy className="w-6 h-6 text-amber-950" />
+                            </div>
+                            <div>
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] sm:text-xs font-black uppercase tracking-wider mb-0.5">
+                                    <Sparkles className="w-3 h-3 text-amber-600" />
+                                    <span>Hall of Fame & Achievements</span>
+                                </div>
+                                <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                                    Success Students
+                                </h2>
+                            </div>
+                        </div>
+
+                        {/* Slider Nav Buttons & Counter (when total > itemsPerPage) */}
+                        {successStudents.length > itemsPerPage && (
+                            <div className="flex items-center gap-2 self-end sm:self-auto">
+                                <span className="text-xs font-bold text-gray-500 bg-white/80 px-3 py-1 rounded-full border border-gray-200 shadow-sm">
+                                    {((currentSlideIndex % successStudents.length) + 1)} / {successStudents.length}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={prevSuccessSlide}
+                                    className="p-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300 transition-all shadow-sm active:scale-95"
+                                    title="Previous Poster"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={nextSuccessSlide}
+                                    className="p-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300 transition-all shadow-sm active:scale-95"
+                                    title="Next Poster"
+                                >
+                                    <ChevronRight className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Auto Slider Viewport */}
+                    <div
+                        className="relative overflow-hidden rounded-3xl"
+                        onMouseEnter={() => setIsSliderPaused(true)}
+                        onMouseLeave={() => setIsSliderPaused(false)}
+                    >
+                        <div
+                            className={`flex ${isTransitioning ? 'transition-transform duration-500 ease-out' : ''}`}
+                            style={{
+                                transform: `translateX(-${currentSlideIndex * (100 / itemsPerPage)}%)`
+                            }}
+                            onTransitionEnd={handleSuccessTransitionEnd}
+                        >
+                            {displaySuccessList.map((item, idx) => {
+                                const originalIdx = idx % successStudents.length;
+
+                                return (
+                                    <div
+                                        key={idx}
+                                        style={{ width: `${100 / itemsPerPage}%` }}
+                                        className="flex-shrink-0 p-2 sm:p-3"
+                                    >
+                                        <div
+                                            onClick={() => {
+                                                setPreviewSuccessPoster(item);
+                                                setPreviewPosterIndex(originalIdx);
+                                            }}
+                                            className="group relative bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-2.5 border border-indigo-500/25 shadow-xl hover:shadow-2xl hover:shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden flex flex-col items-center"
+                                        >
+                                            {/* Poster Image Container: Exactly Preserves 858x1215 Dimensions Without Any Cropping */}
+                                            <div className="relative w-full aspect-[858/1215] rounded-2xl overflow-hidden bg-slate-950/90 flex items-center justify-center">
+                                                {/* Ambient blurred glow in backdrop */}
+                                                <div
+                                                    className="absolute inset-0 bg-cover bg-center blur-md opacity-30 scale-110 pointer-events-none"
+                                                    style={{ backgroundImage: `url(${item.imageUrl})` }}
+                                                />
+
+                                                {/* Crisp 858x1215 Poster Image */}
+                                                <img
+                                                    src={item.imageUrl}
+                                                    alt={item.originalName || 'Success Student'}
+                                                    className="relative z-10 w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300 drop-shadow-lg"
+                                                    loading="lazy"
+                                                />
+
+                                                {/* Top Badge */}
+                                                <div className="absolute top-3 left-3 z-20">
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/95 text-amber-950 text-[10px] sm:text-xs font-black rounded-full shadow-lg backdrop-blur-md uppercase tracking-wider">
+                                                        <Trophy className="w-3.5 h-3.5 text-amber-950" />
+                                                        Success Story
+                                                    </span>
+                                                </div>
+
+                                                {/* Hover Action: Click to inspect */}
+                                                <div className="absolute inset-0 z-20 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                                    <span className="px-4 py-2 bg-indigo-600/90 text-white rounded-xl text-xs font-bold shadow-xl backdrop-blur-md flex items-center gap-1.5 transform group-hover:scale-100 scale-90 transition-all">
+                                                        <Maximize2 className="w-3.5 h-3.5" />
+                                                        View Full Poster
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Floating Navigation Arrows over sides */}
+                        {successStudents.length > itemsPerPage && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={prevSuccessSlide}
+                                    className="absolute left-3 top-1/2 -translate-y-1/2 p-3 bg-black/60 hover:bg-black/90 text-white rounded-full backdrop-blur-md shadow-xl transition-all z-30 hover:scale-110"
+                                    title="Previous"
+                                >
+                                    <ChevronLeft className="w-5 h-5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={nextSuccessSlide}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-3 bg-black/60 hover:bg-black/90 text-white rounded-full backdrop-blur-md shadow-xl transition-all z-30 hover:scale-110"
+                                    title="Next"
+                                >
+                                    <ChevronRight className="w-5 h-5" />
+                                </button>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Pagination Indicator Dots */}
+                    {successStudents.length > itemsPerPage && (
+                        <div className="flex items-center justify-center gap-1.5 pt-1">
+                            {successStudents.map((_, dotIdx) => {
+                                const isActiveDot = (currentSlideIndex % successStudents.length) === dotIdx;
+                                return (
+                                    <button
+                                        key={dotIdx}
+                                        type="button"
+                                        onClick={() => {
+                                            setIsTransitioning(true);
+                                            setCurrentSlideIndex(dotIdx);
+                                        }}
+                                        className={`h-2 rounded-full transition-all duration-300 ${isActiveDot ? 'w-8 bg-amber-500' : 'w-2 bg-gray-300 hover:bg-gray-400'
+                                            }`}
+                                        title={`Go to slide ${dotIdx + 1}`}
+                                    />
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Top Announcement Banner / Header */}
             <div className="relative overflow-hidden bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-950 rounded-3xl p-6 md:p-10 text-white shadow-xl shadow-indigo-950/20">
                 {/* Background decorative glow */}
@@ -538,6 +780,84 @@ const StudentAnnouncements = () => {
                                 type="button"
                                 onClick={() => setIsDetailModalOpen(false)}
                                 className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {/* ------------------------------------------------------------- */}
+            {/* SUCCESS STUDENT POSTER LIGHTBOX MODAL                         */}
+            {/* ------------------------------------------------------------- */}
+            {previewSuccessPoster && (
+                <Modal
+                    isOpen={!!previewSuccessPoster}
+                    onClose={() => setPreviewSuccessPoster(null)}
+                    title="Student Achievement & Success Story"
+                    maxWidth="max-w-2xl"
+                >
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between pb-3 border-b border-gray-100 text-xs">
+                            <span className="flex items-center gap-1.5 font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+                                <Trophy className="w-3.5 h-3.5 text-amber-600" />
+                                Star Placement / Achiever
+                            </span>
+                            {successStudents.length > 1 && (
+                                <span className="text-gray-400 font-semibold">
+                                    Poster {previewPosterIndex + 1} of {successStudents.length}
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Full poster preserving 858x1215 ratio without any clipping */}
+                        <div className="relative w-full aspect-[858/1215] max-h-[75vh] bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center shadow-2xl">
+                            <img
+                                src={previewSuccessPoster.imageUrl}
+                                alt={previewSuccessPoster.originalName || 'Success Student'}
+                                className="w-full h-full object-contain"
+                            />
+
+                            {/* Previous / Next buttons inside lightbox if multiple posters */}
+                            {successStudents.length > 1 && (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const newIdx = (previewPosterIndex - 1 + successStudents.length) % successStudents.length;
+                                            setPreviewPosterIndex(newIdx);
+                                            setPreviewSuccessPoster(successStudents[newIdx]);
+                                        }}
+                                        className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 bg-black/60 hover:bg-black/90 text-white rounded-full transition-all backdrop-blur-sm"
+                                        title="Previous poster"
+                                    >
+                                        <ChevronLeft className="w-5 h-5" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const newIdx = (previewPosterIndex + 1) % successStudents.length;
+                                            setPreviewPosterIndex(newIdx);
+                                            setPreviewSuccessPoster(successStudents[newIdx]);
+                                        }}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 bg-black/60 hover:bg-black/90 text-white rounded-full transition-all backdrop-blur-sm"
+                                        title="Next poster"
+                                    >
+                                        <ChevronRight className="w-5 h-5" />
+                                    </button>
+                                </>
+                            )}
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2">
+                            <span className="text-xs text-gray-400">
+                                Standard Ratio: 858 × 1215
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setPreviewSuccessPoster(null)}
+                                className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs transition-colors"
                             >
                                 Close
                             </button>

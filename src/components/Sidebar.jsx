@@ -17,12 +17,14 @@ import {
     Files,
     X,
     Award,
-    Megaphone
+    Megaphone,
+    Trophy
 } from 'lucide-react';
 
 const facultyLinks = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/faculty-announcements', label: 'Announcements', icon: Megaphone },
+    { path: '/success-students', label: 'Success Student', icon: Trophy },
     { path: '/faculty-management', label: 'Faculty', icon: Shield },
     { path: '/courses', label: 'Courses', icon: BookOpen },
     { path: '/languages', label: 'Languages', icon: Languages },
@@ -49,6 +51,7 @@ const studentLinks = [
 const adminLinks = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/faculty-announcements', label: 'Announcements', icon: Megaphone },
+    { path: '/success-students', label: 'Success Student', icon: Trophy },
     { path: '/faculty-management', label: 'Faculty Management', icon: Shield },
     { path: '/students', label: 'All Students', icon: Users }, // To assign faculty
     { path: '/submissions', label: 'Submissions', icon: Upload },
